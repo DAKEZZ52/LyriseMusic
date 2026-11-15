@@ -1,5 +1,5 @@
 /**
- * LyriseMusic 聊天房后端
+ * DakeMusic 聊天房后端
  * 作者：知之Dake
  * 文件：index.js
  * 描述：用户系统、房间管理、LiveKit语音、网页版托管 + 房间消息/麦位/WebSocket
@@ -13,6 +13,7 @@ import bcrypt from 'bcrypt';
 import rateLimit from 'express-rate-limit';
 import Database from 'better-sqlite3';
 import { AccessToken, RoomServiceClient, DataPacket_Kind } from 'livekit-server-sdk';
+import { getFlags, setWebroom } from './flags.js';
 import lockfile from 'proper-lockfile';
 import winston from 'winston';
 import WebSocket, { WebSocketServer } from 'ws';
@@ -83,7 +84,7 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_users_name ON users(name);
 `);
 
-// LyriseMusic: 违禁词表
+// DakeMusic: 违禁词表
 db.exec(`CREATE TABLE IF NOT EXISTS bad_words (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   word TEXT UNIQUE NOT NULL,
@@ -372,7 +373,27 @@ app.use(express.json({ limit: '20mb' }));
 app.use(apiLimiter);
 app.use(logReq);
 
-// ===== LyriseMusic: 客户端构建标识（Ed25519 验签，可拦截） =====
+// ===== 语聊房维护开关 =====
+// 只拦房间相关接口；登录、健康检查、开关读取、管理接口始终放行
+app.use('/api', (req, res, next) => {
+  const { webroom } = getFlags();
+  if (webroom.mode === 'open') return next();
+  const pathOnly = req.originalUrl.split('?')[0];
+  if (!/^\/api\/rooms(\/|$)/.test(pathOnly)) return next();
+  const draining = webroom.mode === 'draining';
+  const drainMs = (Number(webroom.drainMinutes) || 10) * 60000;
+  return res.status(503).json({
+    error: draining ? 'WEBROOM_CLOSING' : 'WEBROOM_CLOSED',
+    message:
+      webroom.message ||
+      (draining ? '语聊房即将关闭，请稍后再来' : '语聊房维护中，请稍后再来'),
+    mode: webroom.mode,
+    drainEndsAt: draining ? (Number(webroom.drainStartedAt) || 0) + drainMs : undefined,
+  });
+});
+
+
+// ===== DakeMusic: 客户端构建标识（Ed25519 验签，可拦截） =====
 // 官方构建头：v=2.4.8;b=20261106T0031;ch=release;sig=<base64url>
 // 规则：
 //   1) 网页版语聊房（同源 Origin/Referer）放行 —— 浏览器无法签名
@@ -418,7 +439,7 @@ function verifyBuildTag(tag) {
   try {
     const ok = crypto.verify(null, Buffer.from(base), buildPublicKey, Buffer.from(sig, 'base64url'));
     return ok ? { ok: true, reason: 'verified', version } : { ok: false, reason: 'bad-signature', version };
-  } catch {
+  } catch (error) {
     return { ok: false, reason: 'verify-error', version };
   }
 }
@@ -454,7 +475,7 @@ app.use((req, res, next) => {
   }
 
   // 老客户端兜底：请求头没有版本时，用 User-Agent 里的应用版本判断
-  const uaVersion = (String(req.headers['user-agent'] || '').match(/LyriseMusic\/(\d+\.\d+\.\d+)/) || [])[1] || '';
+  const uaVersion = (String(req.headers['user-agent'] || '').match(/DakeMusic\/(\d+\.\d+\.\d+)/) || [])[1] || '';
   const effective = result.version || uaVersion;
   if (!versionGte(effective, BUILD_ENFORCE_FROM)) {
     noteClientBuild(req, 'legacy', { version: effective || 'unknown', reason: result.reason });
@@ -474,7 +495,7 @@ app.use((req, res, next) => {
 
 
 
-// LyriseMusic: 管理后台（同源访问，不走 CORS）
+// DakeMusic: 管理后台（同源访问，不走 CORS）
 initAdmin({ db, rooms: () => rooms, jwtSecret: JWT_SECRET });
 app.use('/admin', adminRouter);
 
@@ -487,19 +508,19 @@ app.use(cors({
   credentials: true,
 }));
 
-// ============ LyriseMusic: 托管网页版静态文件（已关闭） ============
+// ============ DakeMusic: 托管网页版静态文件（已关闭） ============
 // app.use(express.static(path.join(__dirname, 'web')));
 
 // ===== 健康检查 =====
 app.get('/api/health', (req, res) => res.json({ ok: true, ts: Date.now(), users: db.prepare('SELECT COUNT(*) as c FROM users').get().c }));
 
-// ===== LyriseMusic: 公开违禁词列表（前端发消息时过滤） =====
+// ===== DakeMusic: 公开违禁词列表（前端发消息时过滤） =====
 app.get('/api/bad-words', (req, res) => {
   const rows = db.prepare('SELECT word FROM bad_words ORDER BY id DESC').all();
   res.json({ words: rows.map(r => r.word) });
 });
 
-// LyriseMusic: 违禁词增删必须服务端鉴权（列表是全站共享的，客户端隐藏按钮不构成权限控制）
+// DakeMusic: 违禁词增删必须服务端鉴权（列表是全站共享的，客户端隐藏按钮不构成权限控制）
 function requireBadWordAdmin(req, res, next) {
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) return res.status(401).json({ error: 'UNAUTHORIZED' });
@@ -566,7 +587,7 @@ app.post('/api/auth/login', authLimiter, (req, res) => {
   });
 });
 
-// ===== LyriseMusic: peiwan 账号密码登录（陪玩平台对接）=====
+// ===== DakeMusic: peiwan 账号密码登录（陪玩平台对接）=====
 app.post('/api/auth/peiwan-login', authLimiter, async (req, res) => {
   if (!PEIWAN_API_BASE) return res.status(503).json({ error: '陪玩平台未配置(PEIWAN_API_BASE)' });
   const { account, password } = req.body || {};
@@ -719,7 +740,7 @@ app.get('/api/users/:id', (req, res) => {
   });
 });
 
-// ===== LyriseMusic: 根超管任免超管 =====
+// ===== DakeMusic: 根超管任免超管 =====
 app.post('/api/users/:id/super-admin', authSession, (req, res) => {
   const me = currentDbUser(req);
   if (!me || !isRootSuperAccount(me.name)) {
@@ -737,7 +758,7 @@ app.post('/api/users/:id/super-admin', authSession, (req, res) => {
   res.json({ ok: true, userId: target.id, isAdmin: next });
 });
 
-// ===== LyriseMusic: 管理员面板 - 列出所有用户（仅超管可访问）=====
+// ===== DakeMusic: 管理员面板 - 列出所有用户（仅超管可访问）=====
 app.get('/api/admin/users', authSession, (req, res) => {
   const me = currentDbUser(req);
   if (!me || !isRootSuperAccount(me.name)) {
@@ -1048,7 +1069,7 @@ app.patch('/api/rooms/:id', authSession, requireOwner, (req, res) => {
     if (cover === null) return res.status(413).json({ error: '封面图过大，请换一张更小的图片' });
     room.coverImage = cover;
   }
-  // LyriseMusic: 对唱/普通模式持久化，房主不在线时新进房的人也能看到正确布局
+  // DakeMusic: 对唱/普通模式持久化，房主不在线时新进房的人也能看到正确布局
   if (seatMode === 'normal' || seatMode === 'duet') room.seatMode = seatMode;
   saveRooms();
   res.json({ ok: true, name: room.name, seatMode: room.seatMode === 'duet' ? 'duet' : 'normal' });
@@ -1131,7 +1152,7 @@ app.post('/api/rooms/:id/messages', authSession, chatLimiter, (req, res) => {
     is_system: false,
     created_at: new Date(now).toISOString(),
   };
-  // LyriseMusic: 客户端已经通过 LiveKit 实时广播过这条聊天，这里只做历史持久化，
+  // DakeMusic: 客户端已经通过 LiveKit 实时广播过这条聊天，这里只做历史持久化，
   // silent=true 时不再走 WebSocket，避免 web 端收到重复消息。
   if (!silent) wsBroadcast(req.params.id, { type: 'message', ...msg });
   res.json(msg);
@@ -1266,7 +1287,7 @@ app.post('/api/rooms/:id/seat-status', authSession, (req, res) => {
   res.json({ success: true, seat });
 });
 
-// ============ LyriseMusic: 房间点歌台 ============
+// ============ DakeMusic: 房间点歌台 ============
 // 队列存于 room.musicQueue（内存），正在播的存 room.currentTrack。
 // 权限：房主或当前在麦上的人 = DJ，可切歌/删歌；任何人可点歌、可删自己点的。
 
@@ -1305,7 +1326,7 @@ function toPublicTrack(track) {
   if (!track || typeof track !== 'object') return track;
   const copy = { ...track };
   delete copy.requestedByAvatar;
-  // LyriseMusic: 带上当前播放进度，供中途进房/断线重连的客户端 seek 对齐。
+  // DakeMusic: 带上当前播放进度，供中途进房/断线重连的客户端 seek 对齐。
   // 用服务端时间计算，避免各客户端时钟不一致。
   const startedAt = Number(track.startedAt) || 0;
   copy.position = startedAt > 0 ? Math.max(0, (Date.now() - startedAt) / 1000) : 0;
@@ -1344,7 +1365,7 @@ app.post('/api/rooms/:id/request-song', authSession, (req, res) => {
     addedAt: Date.now(),
   };
   room.musicQueue.push(item);
-  // LyriseMusic: 房间当前没有正在播放的歌时，新点的第一首直接开播，
+  // DakeMusic: 房间当前没有正在播放的歌时，新点的第一首直接开播，
   // 否则用户点完歌只看到队列里有歌却永远不响（此前只有“切歌”按钮能触发，而它只在有当前曲目时出现）。
   let startedTrack = null;
   if (!room.currentTrack) {
@@ -1470,8 +1491,11 @@ function requireAdmin(req, res, next) {
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) return res.status(401).json({ error: 'UNAUTHORIZED' });
   try {
-    const { role } = jwt.verify(token, JWT_SECRET);
-    if (role !== 'admin') return res.status(403).json({ error: '无权限' });
+    const payload = jwt.verify(token, JWT_SECRET);
+    // 兼容两种签发方式：/api/admin/login 签 role，/admin/login 签 isAdmin
+    if (payload.role !== 'admin' && payload.isAdmin !== 1) {
+      return res.status(403).json({ error: '无权限' });
+    }
     next();
   } catch { res.status(401).json({ error: 'TOKEN_EXPIRED' }); }
 }
@@ -1484,6 +1508,146 @@ app.delete('/api/admin/rooms/:id', adminLimiter, requireAdmin, async (req, res) 
   saveRooms(() => logger.warn('admin.delete_room', { reqId: req.id, roomId: req.params.id, name: room.name }));
   res.json({ ok: true });
 });
+
+
+// ===== 开关接口 =====
+app.get('/api/feature-flags', (req, res) => {
+  const { webroom, features } = getFlags();
+  res.json({
+    webroom: { mode: webroom.mode, message: webroom.message, updatedAt: webroom.updatedAt },
+    features: {
+      separator: {
+        enabled: features?.separator?.enabled !== false,
+        message: features?.separator?.message || '',
+      },
+      scoreflow: {
+        enabled: features?.scoreflow?.enabled !== false,
+        message: features?.scoreflow?.message || '',
+      },
+    },
+  });
+});
+
+app.post('/api/admin/flags', adminLimiter, requireAdmin, (req, res) => {
+  const patch = (req.body && req.body.webroom) || {};
+  const clean = {};
+  if ('mode' in patch) {
+    if (!['open', 'draining', 'maintenance'].includes(patch.mode)) {
+      return res.status(400).json({ error: 'mode 只能是 open / draining / maintenance' });
+    }
+    clean.mode = patch.mode;
+    // 进入 draining 时重置倒计时起点
+    if (patch.mode === 'draining') clean.drainStartedAt = Date.now();
+    // 重新开放时清掉倒计时
+    if (patch.mode === 'open') {
+      clean.drainStartedAt = 0;
+      clean.message = '';
+    }
+  }
+  if ('drainMinutes' in patch) {
+    const minutes = Number(patch.drainMinutes);
+    if (!Number.isFinite(minutes) || minutes < 1 || minutes > 180) {
+      return res.status(400).json({ error: 'drainMinutes 需在 1-180 之间' });
+    }
+    clean.drainMinutes = Math.round(minutes);
+  }
+  if ('message' in patch) clean.message = String(patch.message || '').slice(0, 200);
+  if (!Object.keys(clean).length) return res.status(400).json({ error: '没有需要更新的字段' });
+  const flags = setWebroom(clean, (req.body && req.body.by) || 'admin');
+  logger.info('admin.flags', { reqId: req.id, mode: flags.webroom.mode, by: flags.webroom.updatedBy });
+  res.json({ ok: true, flags });
+});
+
+
+// ===== 关闭语聊房时清场：断开 WS + 移除 LiveKit 参与者 + 清空队列 =====
+async function kickAllFromWebroom(reason = '语聊房维护中') {
+  const message = reason || '语聊房维护中';
+
+  // 1. 先给还在房间的人广播一条提示（此时 LiveKit 还能发包）
+  for (const room of Object.values(rooms)) {
+    broadcastToRoom(room, { type: 'room_closed', message }).catch(() => {});
+  }
+
+  // 2. 先移除 LiveKit 参与者（必须在断 WS 之前：断开会触发 wsLeaveRoom 把 participants 清空）
+  let removed = 0;
+  for (const room of Object.values(rooms)) {
+    const participants = Array.isArray(room.participants) ? [...room.participants] : [];
+    for (const p of participants) {
+      if (!p?.identity) continue;
+      try {
+        await roomService.removeParticipant(room.id, p.identity);
+        removed += 1;
+      } catch (err) {
+        logger.warn('webroom.kick.participant_failed', { roomId: room.id, identity: p.identity, err: err.message });
+      }
+    }
+    room.participants = [];
+    room.currentTrack = null;
+    room.musicQueue = [];
+  }
+
+  // 3. 断开所有 WebSocket，前端会收到 WEBROOM_CLOSED 并渲染锁定页
+  let wsClosed = 0;
+  for (const [ws] of wssClients) {
+    try {
+      ws.send(JSON.stringify({ type: 'error', error: 'WEBROOM_CLOSED', message }));
+      ws.close();
+      wsClosed += 1;
+    } catch {
+      /* 连接可能已断，忽略 */
+    }
+  }
+  userCurrentRoom.clear();
+  saveRooms(() => {});
+
+  logger.warn('webroom.kick_all', { wsClosed, removed, reason: message });
+  return { wsClosed, removed };
+}
+
+// 开关变化监听：无论通过 API 还是直接改 config/flags.json，都会在 2 秒内生效
+let lastWebroomMode = getFlags().webroom.mode;
+setInterval(() => {
+  const { webroom } = getFlags();
+  if (webroom.mode === lastWebroomMode) return;
+  const previous = lastWebroomMode;
+  lastWebroomMode = webroom.mode;
+  logger.info('webroom.mode_changed', { from: previous, to: webroom.mode });
+
+  if (webroom.mode === 'draining') {
+    // 温和关闭：不踢人，只通知在场的人，并开始倒计时
+    if (!webroom.drainStartedAt) {
+      setWebroom({ drainStartedAt: Date.now() }, 'auto');
+    }
+    const minutes = Number(webroom.drainMinutes) || 10;
+    for (const room of Object.values(rooms)) {
+      broadcastToRoom(room, {
+        type: 'room_closing',
+        message: webroom.message || '语聊房即将关闭',
+        minutes,
+      }).catch(() => {});
+    }
+    logger.warn('webroom.draining_started', { minutes });
+  } else if (webroom.mode === 'maintenance') {
+    kickAllFromWebroom(webroom.message).catch((err) => {
+      logger.error('webroom.kick_failed', { err: err.message });
+    });
+  }
+}, 2000);
+
+// draining 到期自动转入 maintenance（再由上面的监听触发踢人）
+setInterval(() => {
+  const { webroom } = getFlags();
+  if (webroom.mode !== 'draining') return;
+  const started = Number(webroom.drainStartedAt) || 0;
+  const minutes = Number(webroom.drainMinutes) || 10;
+  if (!started) {
+    setWebroom({ drainStartedAt: Date.now() }, 'auto');
+    return;
+  }
+  if (Date.now() - started < minutes * 60000) return;
+  logger.warn('webroom.drain_expired', { minutes });
+  setWebroom({ mode: 'maintenance', message: webroom.message || '语聊房已关闭' }, 'auto');
+}, 15000);
 
 // ===== 404/500 =====
 app.use((req, res) => res.status(404).json({ error: 'NOT_FOUND' }));
@@ -1524,6 +1688,15 @@ wss.on('connection', (ws, req) => {
 
       // 订阅房间
       if (msg.type === 'join_room' && info.userId) {
+      // 维护开关：关闭时不接受房间订阅
+      {
+        const { webroom } = getFlags();
+        if (webroom.mode !== 'open') {
+          ws.send(JSON.stringify({ type: 'error', error: 'WEBROOM_CLOSED', message: webroom.message || '语聊房维护中' }));
+          logger.warn('ws.blocked_by_flag', { userId: info.userId, mode: webroom.mode });
+          return;
+        }
+      }
         if (info.roomId) wsLeaveRoom(ws, info.roomId);
         const joinedRoom = rooms[msg.roomId];
         if (!canAccessRoomContent(joinedRoom, { userId: info.userId, name: info.userName })) {

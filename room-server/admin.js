@@ -1,14 +1,16 @@
 /**
- * LyriseMusic 管理后台 API
+ * DakeMusic 管理后台 API
  * 挂载在 /admin 路由下
  */
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
+import Database from 'better-sqlite3';
 import fs from "node:fs";
 import zlib from "node:zlib";
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { getFlags, setWebroom, setFeatures } from './flags.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const router = express.Router();
@@ -56,6 +58,49 @@ router.post('/login', (req, res) => {
     { expiresIn: '7d' }
   );
   res.json({ token, user: { name: user.name, nickname: user.nickname || user.name } });
+});
+
+
+// ============ 语聊房开关 ============
+router.get('/flags', requireAdmin, (req, res) => {
+  const { webroom, features } = getFlags();
+  res.json({ webroom, features });
+});
+
+router.post('/flags', requireAdmin, (req, res) => {
+  const patch = (req.body && req.body.webroom) || {};
+  const clean = {};
+  if ('mode' in patch) {
+    if (!['open', 'draining', 'maintenance'].includes(patch.mode)) {
+      return res.status(400).json({ error: 'mode 只能是 open / draining / maintenance' });
+    }
+    clean.mode = patch.mode;
+    if (patch.mode === 'draining') clean.drainStartedAt = Date.now();
+    if (patch.mode === 'open') {
+      clean.drainStartedAt = 0;
+      clean.message = '';
+    }
+  }
+  if ('message' in patch) clean.message = String(patch.message || '').slice(0, 200);
+  if ('drainMinutes' in patch) {
+    const minutes = Number(patch.drainMinutes);
+    if (!Number.isFinite(minutes) || minutes < 1 || minutes > 180) {
+      return res.status(400).json({ error: 'drainMinutes 需在 1-180 之间' });
+    }
+    clean.drainMinutes = Math.round(minutes);
+  }
+  const featurePatch = (req.body && req.body.features) || null;
+  const hasFeaturePatch = featurePatch && typeof featurePatch === 'object' && Object.keys(featurePatch).length > 0;
+  if (!Object.keys(clean).length && !hasFeaturePatch) {
+    return res.status(400).json({ error: '没有需要更新的字段' });
+  }
+  let flags = clean && Object.keys(clean).length
+    ? setWebroom(clean, req.admin?.name || 'admin')
+    : getFlags();
+  if (featurePatch && typeof featurePatch === 'object') {
+    flags = setFeatures(featurePatch, req.admin?.name || 'admin');
+  }
+  res.json({ ok: true, flags });
 });
 
 // ============ 控制台统计 ============
@@ -173,7 +218,7 @@ router.post('/bad-words/add', requireAdmin, (req, res) => {
   try {
     db.prepare('INSERT INTO bad_words (word, created_at) VALUES (?, ?)').run(w, Date.now());
     res.json({ ok: true });
-  } catch {
+  } catch (e) {
     res.status(400).json({ error: '该词已存在' });
   }
 });
@@ -188,7 +233,7 @@ router.post('/bad-words/:id/delete', requireAdmin, (req, res) => {
 const NOTICE_FILE = path.join(__dirname, "notice.txt");
 router.get("/notice", requireAdmin, (req, res) => {
   try { res.json({ notice: fs.readFileSync(NOTICE_FILE, "utf8").trim() }); }
-  catch{ res.json({ notice: "" }); }
+  catch(e){ res.json({ notice: "" }); }
 });
 router.post("/notice", requireAdmin, (req, res) => {
   const notice = String(req.body?.notice || "").slice(0, 500);
@@ -198,7 +243,7 @@ router.post("/notice", requireAdmin, (req, res) => {
 
 // ============ 下载统计（读 nginx 访问日志） ============
 const NGINX_LOG_DIR = '/var/log/nginx';
-const INSTALLER_RE = /^\/dl\/LyriseMusic-(\d+\.\d+\.\d+(?:-beta)?)\.exe$/;
+const INSTALLER_RE = /^\/dl\/DakeMusic-(\d+\.\d+\.\d+(?:-beta)?)\.exe$/;
 const MB = 1024 * 1024;
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
