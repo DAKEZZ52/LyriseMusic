@@ -3,6 +3,8 @@ name: Build LyriseMusic Desktop
 on:
   push:
     tags:
+      # 版本 tag 直接用版本号（2.4.13）；旧的 v 前缀也继续兼容
+      - '[0-9]*'
       - 'v*'
   workflow_dispatch:
 

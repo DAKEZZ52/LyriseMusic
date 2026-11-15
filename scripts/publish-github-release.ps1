@@ -1,4 +1,4 @@
-﻿# 把本地 release/ 产物发布到 GitHub Release（v<version>）。
+# 把本地 release/ 产物发布到 GitHub Release（tag 直接用版本号，如 2.4.13）。
 # 已存在则覆盖：先按名字删掉同名 asset，再上传；不存在则新建（先 draft，传完再发布）。
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -7,7 +7,7 @@ try {
   $token = (Get-Content '.keys\github_token' -Raw).Trim()
   $pkg = Get-Content package.json -Raw -Encoding UTF8 | ConvertFrom-Json
   $version = $pkg.version
-  $tag = "v$version"
+  $tag = "$version"
   $repo = 'DAKEZZ52/LyriseMusic'
 
   $files = @(
