@@ -1,7 +1,8 @@
 <script setup lang="ts">
 defineOptions({ name: 'home' });
 import { computed, onMounted, onUnmounted, ref } from 'vue';
-import SleepPig from '@/components/SleepPig.vue';
+// 问候语停用后不再使用（保留导入，需要时和模板一起取消注释）
+// import SleepPig from '@/components/SleepPig.vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '@/stores/user';
 import { useSettingStore } from '@/stores/setting';
@@ -65,6 +66,7 @@ const playerStore = usePlayerStore();
 const toastStore = useToastStore();
 const showUserAgreement = ref(false);
 
+/* 问候语暂时停用（保留实现，需要时取消注释即可）
 const greeting = computed(() => {
   const hour = new Date().getHours();
   const base =
@@ -82,6 +84,7 @@ const greeting = computed(() => {
   const nickname = userStore.info?.nickname;
   return userStore.isLoggedIn && nickname ? `Hi, ${nickname} ${base}` : base;
 });
+*/
 
 const recommendedPlaylists = ref<PlaylistMeta[]>([]);
 const topIpPlaylists = ref<PlaylistMeta[]>([]);
@@ -400,6 +403,7 @@ const handleRejectAgreement = () => {
 <template>
   <PageScrollContainer class="home-view-container">
     <div class="home-view px-10 pt-4 pb-10">
+      <!-- 问候语暂时停用（保留结构，需要时取消注释即可）
       <div class="home-header">
         <div class="text-[22px] font-semibold tracking-tight text-text-main">{{ greeting }}</div>
         <div ref="greetingSubtitleRef" class="text-[12px] text-text-secondary/80 mt-1">
@@ -407,6 +411,7 @@ const handleRejectAgreement = () => {
           <SleepPig />
         </div>
       </div>
+      -->
 
       <!-- Hero Banner：轮播推荐歌曲 -->
       <div class="hero-banner">
@@ -623,11 +628,11 @@ const handleRejectAgreement = () => {
   display: flex;
   align-items: center;
   margin-bottom: 28px;
-  padding: 40px 48px;
-  border-radius: 20px;
+  padding: 48px 56px;
+  border-radius: 24px;
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
   overflow: hidden;
-  min-height: 240px;
+  min-height: 320px;
 }
 
 .hero-left {
@@ -645,19 +650,19 @@ const handleRejectAgreement = () => {
 }
 
 .hero-line-main {
-  font-size: 36px;
+  font-size: 44px;
   font-weight: 800;
-  line-height: 1.25;
+  line-height: 1.2;
   color: #fff;
   letter-spacing: 1px;
   word-break: break-word;
 }
 
 .hero-line-sub {
-  font-size: 12px;
+  font-size: 13px;
   color: rgba(255, 255, 255, 0.4);
   letter-spacing: 2px;
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 .hero-play-btn {
@@ -665,8 +670,8 @@ const handleRejectAgreement = () => {
   left: 52%;
   top: 50%;
   transform: translateY(-50%);
-  width: 60px;
-  height: 60px;
+  width: 68px;
+  height: 68px;
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.2);
   background: rgba(255, 255, 255, 0.08);
