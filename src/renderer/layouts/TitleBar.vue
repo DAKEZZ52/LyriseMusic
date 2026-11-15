@@ -923,12 +923,17 @@ onUnmounted(() => {
 
 <style scoped>
 .title-bar {
-  height: max(84px, calc(73px / var(--window-zoom-factor, 1)));
+  /* 高度公式保持不动（缩放系数换算），高度本身不改 */
+  height: max(58px, calc(75px / var(--window-zoom-factor, 1)));
 }
 
 .titlebar-main-row {
   height: 100%;
   align-items: center;
+  /* 整行（导航 / 搜索 / 工具 / 窗口控制）上移，贴合原生标题栏按钮的水平线。
+     用相对定位而不是改高度：标题栏高度和页面起始位置都不受影响。 */
+  position: relative;
+  top: -16px;
 }
 
 .titlebar-nav {
