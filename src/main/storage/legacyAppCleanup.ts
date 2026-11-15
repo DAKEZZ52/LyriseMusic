@@ -10,6 +10,11 @@ import { execFile } from 'child_process';
 import { app } from 'electron';
 import { existsSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import {
+  parseUninstallRecords,
+  selectLegacyInstalls,
+  type UninstallRecord,
+} from './registryUninstall';
 
 /** 历史产品的显示名前缀（DisplayName 形如 "DakeMusic 2.4.8"） */
 const LEGACY_DISPLAY_NAME_PREFIXES = ['DakeMusic', 'EchoMusic'] as const;
@@ -17,54 +22,38 @@ const LEGACY_DISPLAY_NAME_PREFIXES = ['DakeMusic', 'EchoMusic'] as const;
 /** 清理完成标记，避免每次启动都扫描注册表 */
 const CLEANUP_MARKER = '.legacy-app-cleaned';
 
-export interface LegacyInstallEntry {
-  displayName: string;
-  uninstallString: string;
-}
+/** 卸载项可能落在的三个注册表位置 */
+const HIVE_ROOTS = [
+  'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall',
+  'HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall',
+  'HKLM\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall',
+] as const;
 
-/** 通过 reg query 列出卸载项（含 DisplayName / UninstallString） */
+export type LegacyInstallEntry = UninstallRecord;
+
+/**
+ * 通过 reg query 列出卸载项（含 DisplayName / UninstallString）。
+ *
+ * 每个「注册表根 × 历史前缀」都要查一次：`/f` 只做字面量匹配，
+ * 只查 DakeMusic 的话，DisplayName 为 "EchoMusic ..." 的安装永远找不到。
+ */
 export const findLegacyInstalls = (): Promise<LegacyInstallEntry[]> =>
   new Promise((resolve) => {
-    const hiveRoots = [
-      'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall',
-      'HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall',
-      'HKLM\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall',
-    ];
-    const found: LegacyInstallEntry[] = [];
-    let pending = hiveRoots.length;
+    const records: UninstallRecord[] = [];
+    const searches = HIVE_ROOTS.flatMap((root) =>
+      LEGACY_DISPLAY_NAME_PREFIXES.map((prefix) => ({ root, prefix })),
+    );
+    let pending = searches.length;
 
-    const done = () => {
-      pending -= 1;
-      if (pending <= 0) resolve(found);
-    };
-
-    for (const root of hiveRoots) {
+    for (const { root, prefix } of searches) {
       execFile(
         'reg',
-        ['query', root, '/s', '/f', 'DakeMusic', '/t', 'REG_SZ'],
+        ['query', root, '/s', '/f', prefix, '/t', 'REG_SZ'],
         { windowsHide: true },
         (error, stdout) => {
-          if (error || !stdout) {
-            done();
-            return;
-          }
-          let displayName = '';
-          let uninstallString = '';
-          for (const rawLine of stdout.split(/\r?\n/)) {
-            const line = rawLine.trim();
-            if (/^DisplayName\s+REG_SZ\s+/i.test(line)) {
-              displayName = line.replace(/^DisplayName\s+REG_SZ\s+/i, '').trim();
-            } else if (/^UninstallString\s+REG_SZ\s+/i.test(line)) {
-              uninstallString = line.replace(/^UninstallString\s+REG_SZ\s+/i, '').trim();
-            }
-          }
-          const isLegacy = LEGACY_DISPLAY_NAME_PREFIXES.some((prefix) =>
-            displayName.toLowerCase().startsWith(prefix.toLowerCase()),
-          );
-          if (isLegacy && uninstallString) {
-            found.push({ displayName, uninstallString });
-          }
-          done();
+          if (!error && stdout) records.push(...parseUninstallRecords(stdout));
+          pending -= 1;
+          if (pending === 0) resolve(selectLegacyInstalls(records, LEGACY_DISPLAY_NAME_PREFIXES));
         },
       );
     }
