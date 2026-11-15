@@ -109,9 +109,6 @@ const downloadedCount = computed(() => props.models.filter((m) => m.downloaded).
           </div>
         </div>
       </div>
-      <p v-if="!modelsCollapsed" class="sep-footnote">
-        模型需先下载（约 64MB），下载后缓存到本地，无需重复下载。
-      </p>
     </div>
   </div>
 </template>
@@ -416,10 +413,4 @@ const downloadedCount = computed(() => props.models.filter((m) => m.downloaded).
 }
 
 /* === 脚注 === */
-.sep-footnote {
-  margin: 8px 4px 0;
-  font-size: 11.5px;
-  line-height: 1.6;
-  color: var(--color-text-secondary);
-}
 </style>

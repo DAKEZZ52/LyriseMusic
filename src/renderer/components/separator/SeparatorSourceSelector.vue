@@ -102,7 +102,9 @@ const sourceIndex = computed(() => (props.sourceType === 'current' ? 0 : 1));
           <div class="sep-row-text">
             <div class="sep-row-title">{{ selectedFileName || '选择音频文件' }}</div>
             <div class="sep-row-sub">
-              {{ selectedFileName ? '点此重新选择' : '支持 MP3 / FLAC / WAV / M4A' }}
+              {{
+                selectedFileName ? '点此重新选择' : '支持 MP3 / FLAC / WAV / M4A，可多选批量排队'
+              }}
             </div>
           </div>
           <span class="sep-row-chevron"><Icon :icon="iconChevronRight" /></span>
@@ -110,6 +112,7 @@ const sourceIndex = computed(() => (props.sourceType === 'current' ? 0 : 1));
             type="file"
             class="sep-file-input"
             accept="audio/*"
+            multiple
             @change="emit('filePicked', $event)"
           />
         </label>

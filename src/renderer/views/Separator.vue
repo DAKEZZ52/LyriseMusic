@@ -3,9 +3,9 @@
  * 文件：Separator.vue
  * 作者：知之（DAKE知之）
  * 版权：© 2026 LyriseMusic. All rights reserved.
- * 描述：收缩头部（SliverHeader）+ 顶部操作行（SeparatorActionBar）+
+ * 描述：收缩头部（SliverHeader）+
  *       左侧统计面板（SeparatorStatsPanel）+ 右栏分区卡
- *       （音频来源 / 分离模型 / 状态 / 调性）。集中管理业务状态
+ *       （音频来源 / 分离模型 / 状态 / 输出选项，开始分离按钮在输出选项卡内）。集中管理业务状态
  *       （模型/来源/分离流程/路径/主题取色），各 UI 区块均为独立组件。
  -->
 <script setup lang="ts">
@@ -18,7 +18,8 @@ import SeparatorSourceSelector from '@/components/separator/SeparatorSourceSelec
 import SeparatorModelSelector from '@/components/separator/SeparatorModelSelector.vue';
 import SeparatorStatusPanel from '@/components/separator/SeparatorStatusPanel.vue';
 import SeparatorActionPanel from '@/components/separator/SeparatorActionPanel.vue';
-import SeparatorActionBar from '@/components/separator/SeparatorActionBar.vue';
+import SeparatorQueuePanel from '@/components/separator/SeparatorQueuePanel.vue';
+import { useSeparatorQueue } from '@/composables/useSeparatorQueue';
 import {
   extractDominantColor,
   hexToRgb,
@@ -28,6 +29,7 @@ import {
   DEFAULT_ACCENT,
 } from '@/utils/color';
 import { usePlayerStore } from '@/stores/player';
+import { usePlaylistStore } from '@/stores/playlist';
 import { useThemeStore } from '@/stores/theme';
 import { useToastStore } from '@/stores/toast';
 import { createThemedIconCoverUrl } from '@/utils/cover';
@@ -43,8 +45,12 @@ import type {
 const TARGET_RATE = 44100;
 
 const playerStore = usePlayerStore();
+const playlistStore = usePlaylistStore();
 const themeStore = useThemeStore();
 const toastStore = useToastStore();
+
+/** 分离队列：串行执行，一项 start→save 结束后再跑下一项。 */
+const separatorQueue = useSeparatorQueue();
 
 const models = ref<SeparatorModelInfo[]>([]);
 const selectedModelId = ref<string>('');
@@ -269,15 +275,63 @@ async function decodeResample(
 
 function onFilePicked(event: Event) {
   const input = event.target as HTMLInputElement;
-  const file = input.files?.[0];
-  if (!file) return;
-  selectedFileName.value = file.name;
+  const files = Array.from(input.files ?? []);
+  if (files.length === 0) return;
   errorMsg.value = '';
-  const reader = new FileReader();
-  reader.onload = () => {
-    fileBuffer = reader.result as ArrayBuffer;
-  };
-  reader.readAsArrayBuffer(file);
+
+  // 单文件：仍作为「当前来源」，行为和以前一致
+  if (files.length === 1) {
+    const file = files[0];
+    selectedFileName.value = file.name;
+    const reader = new FileReader();
+    reader.onload = () => {
+      fileBuffer = reader.result as ArrayBuffer;
+    };
+    reader.readAsArrayBuffer(file);
+    return;
+  }
+
+  // 多选：全部作为独立任务进入分离队列，逐首串行处理
+  if (!assertQueueReady()) return;
+  const added = separatorQueue.enqueue(
+    files.map((file) => {
+      const baseName = fileBaseName(file.name);
+      return {
+        title: baseName,
+        subtitle: '本地文件',
+        run: createJobRunner(async () => ({
+          buffer: await file.arrayBuffer(),
+          baseName,
+        })),
+      };
+    }),
+  );
+  toastStore.info(`已加入 ${added} 个文件到分离队列`);
+  // 清空 input，方便再次选择同样的文件
+  input.value = '';
+}
+
+/** 文件名去掉扩展名，作为输出基础名。 */
+function fileBaseName(name: string): string {
+  return name.replace(/\.[^.]+$/, '') || 'audio';
+}
+
+/** 歌曲的歌手文案（与页面顶部展示一致）。 */
+function songArtistText(song: Song): string {
+  const names = song.singers?.map((s) => s.name).filter(Boolean) ?? [];
+  if (names.length) return names.join('、');
+  return song.artist ?? '';
+}
+
+/** 解析任意一首歌的音频，返回 ArrayBuffer 与输出基础名。 */
+async function resolveSongBuffer(song: Song): Promise<{ buffer: ArrayBuffer; baseName: string }> {
+  const resolved = await playerStore.resolveAudioUrl(song);
+  if (!resolved?.url) throw new Error('无法解析该歌曲的播放地址');
+  const res = await fetch(resolved.url);
+  const buffer = await res.arrayBuffer();
+  const title = song.name || song.title || 'audio';
+  const artist = songArtistText(song);
+  return { buffer, baseName: artist ? `${title} - ${artist}` : title };
 }
 
 /** 获取来源音频的 ArrayBuffer 与基础名。 */
@@ -291,14 +345,7 @@ async function getSourceBuffer(): Promise<{ buffer: ArrayBuffer; baseName: strin
   }
   const song = currentSong();
   if (!song) throw new Error('当前没有正在播放的歌曲');
-  const resolved = await playerStore.resolveAudioUrl(song);
-  if (!resolved?.url) throw new Error('无法解析该歌曲的播放地址');
-  const res = await fetch(resolved.url);
-  const buffer = await res.arrayBuffer();
-  const artist = currentSongArtist();
-  const title = currentSongTitle() || 'audio';
-  const baseName = artist ? `${title} - ${artist}` : title;
-  return { buffer, baseName };
+  return resolveSongBuffer(song);
 }
 
 function selectSource(type: 'current' | 'file') {
@@ -379,6 +426,143 @@ async function start() {
     errorMsg.value = readableError(err);
   } finally {
     busy.value = 'idle';
+  }
+}
+
+/* ───────────── 分离队列（批量 / 排队） ───────────── */
+
+/** 当前播放列表里的歌曲（作为「批量加入」的来源）。 */
+const playlistSongs = computed<Song[]>(() => {
+  const songs = playlistStore.activeQueue?.songs ?? [];
+  return songs as Song[];
+});
+
+/* 队列状态在模板里按普通值使用（解包成数组/null 等，避免传 Ref 进去） */
+const queueJobs = computed(() => separatorQueue.jobs.value);
+const queueRunning = computed(() => separatorQueue.running.value);
+const queueStatsValue = computed(() => separatorQueue.stats.value);
+const queueCanStart = computed(() => separatorQueue.canStart.value);
+
+/** 「加入当前」是否可用：队列空闲、页面空闲、且确实有可加的来源。 */
+const canAddCurrent = computed(() => {
+  if (separatorQueue.running.value || busy.value !== 'idle') return false;
+  if (sourceType.value === 'file') return !!selectedFileName.value;
+  return !!currentSong();
+});
+
+/** 入队前的统一校验：模型已选且已下载、保存位置已设置。 */
+function assertQueueReady(): boolean {
+  if (!selectedModelId.value) {
+    toastStore.warning('请选择分离模型');
+    return false;
+  }
+  if (!selectedModelDownloaded.value) {
+    toastStore.warning('请先在分离模型处下载模型');
+    return false;
+  }
+  if (!saveDir.value) {
+    toastStore.warning('请先设置保存位置');
+    return false;
+  }
+  return true;
+}
+
+/**
+ * 构造一条队列任务的执行闭包：只在轮到它时才取音频 → 解码 → 分离 → 保存。
+ * 串行执行（主进程只有一个结果暂存槽位），因此这里可以安全复用页面态。
+ */
+function createJobRunner(load: () => Promise<{ buffer: ArrayBuffer; baseName: string }>) {
+  return async (): Promise<{ vocalPath: string; instrumentalPath: string }> => {
+    const { buffer, baseName } = await load();
+    busy.value = 'separate';
+    errorMsg.value = '';
+    progress.value = { stage: 'separate', percent: 0 };
+    try {
+      const decoded = await decodeResample(buffer);
+      const res = await window.electron.separator.start(selectedModelId.value, {
+        channels: decoded.channels,
+        sampleRate: decoded.sampleRate,
+        data: decoded.data,
+        baseName,
+        keyShift: enableKeyShift.value ? selectedKey.value : 0,
+      });
+      busy.value = 'save';
+      progress.value = { stage: 'save', percent: 0 };
+      const saved = await window.electron.separator.save(res.cacheId, saveDir.value);
+      result.value = null;
+      output.value = saved;
+      return saved;
+    } finally {
+      busy.value = 'idle';
+    }
+  };
+}
+
+/** 把「当前来源」（正在播放的歌曲 / 已选本地文件）加入队列。 */
+function enqueueCurrentSource() {
+  if (separatorQueue.running.value) return;
+  if (!assertQueueReady()) return;
+
+  if (sourceType.value === 'file') {
+    if (!fileBuffer) {
+      toastStore.warning('请先选择本地音频文件');
+      return;
+    }
+    const buffer = fileBuffer;
+    const baseName = fileBaseName(selectedFileName.value);
+    separatorQueue.enqueue([
+      {
+        title: baseName,
+        subtitle: '本地文件',
+        run: createJobRunner(async () => ({ buffer, baseName })),
+      },
+    ]);
+  } else {
+    const song = currentSong();
+    if (!song) {
+      toastStore.warning('当前没有正在播放的歌曲');
+      return;
+    }
+    separatorQueue.enqueue([
+      {
+        title: currentSongTitle(),
+        subtitle: currentSongArtist() || '正在播放',
+        run: createJobRunner(() => resolveSongBuffer(song)),
+      },
+    ]);
+  }
+  toastStore.info('已加入分离队列');
+}
+
+/** 把当前播放列表整张加入队列（逐首串行分离）。 */
+function enqueuePlaylist() {
+  if (separatorQueue.running.value) return;
+  if (!assertQueueReady()) return;
+  const songs = playlistSongs.value;
+  if (songs.length === 0) {
+    toastStore.warning('当前没有播放列表');
+    return;
+  }
+  const added = separatorQueue.enqueue(
+    songs.map((song) => ({
+      title: song.name || song.title || '未命名歌曲',
+      subtitle: songArtistText(song) || '播放列表',
+      run: createJobRunner(() => resolveSongBuffer(song)),
+    })),
+  );
+  toastStore.info(`已加入 ${added} 首到分离队列`);
+}
+
+/** 开始跑队列（串行；已有一项在跑时忽略）。 */
+async function startQueue() {
+  if (busy.value !== 'idle') return;
+  if (!assertQueueReady()) return;
+  await separatorQueue.start();
+  const { failed } = separatorQueue.stats.value;
+  if (failed > 0) {
+    toastStore.warning(`队列结束，${failed} 项失败`);
+  } else {
+    toastStore.success('队列已全部完成');
   }
 }
 
@@ -490,21 +674,12 @@ onUnmounted(() => {
             </div>
           </div>
         </template>
-
-        <template #actions>
-          <SeparatorActionBar :can-start="canSeparate" :is-busy="isBusy" @start="start" />
-        </template>
-
-        <template #collapsed-actions>
-          <button type="button" class="sep-collapsed-start" :disabled="!canSeparate" @click="start">
-            <Icon :icon="iconScissors" width="16" height="16" />
-            <span>{{ isBusy ? '分离中' : '开始分离' }}</span>
-          </button>
-        </template>
       </SliverHeader>
 
-      <div class="px-6 pt-2.5 pb-1">
-        <div class="flex flex-col gap-5 pb-12">
+      <!-- 双栏：左侧「来源 + 模型」，右侧「状态 + 输出选项 / 开始分离」，
+           整页在常见窗口高度内不用滚动就能看全 -->
+      <div class="sep-content px-6 pt-2.5">
+        <div class="sep-content-col">
           <!-- 音频来源 -->
           <SeparatorSourceSelector
             :source-type="sourceType"
@@ -529,8 +704,25 @@ onUnmounted(() => {
             @download-model="downloadModel"
             @toggle-collapse="modelsCollapsed = !modelsCollapsed"
           />
+        </div>
 
-          <!-- 进度 / 已保存 / 错误面板 -->
+        <div class="sep-content-col">
+          <!-- 分离队列：批量 / 排队，逐首串行执行 -->
+          <SeparatorQueuePanel
+            :jobs="queueJobs"
+            :stats="queueStatsValue"
+            :running="queueRunning"
+            :can-start="queueCanStart"
+            :can-add-current="canAddCurrent"
+            :playlist-count="playlistSongs.length"
+            @start="startQueue"
+            @stop="separatorQueue.stop()"
+            @clear="separatorQueue.clearSettled()"
+            @add-current="enqueueCurrentSource"
+            @add-playlist="enqueuePlaylist"
+          />
+
+          <!-- 进度 / 已保存 / 错误面板（空闲且无结果时不渲染） -->
           <SeparatorStatusPanel
             :busy="busy"
             :progress-percent="progressPercent"
@@ -539,13 +731,13 @@ onUnmounted(() => {
             :error-msg="errorMsg"
           />
 
-          <!-- 输出选项：保存/模型位置 + 调性 -->
+          <!-- 输出选项：保存/模型位置 + 调性 + 开始分离 -->
           <SeparatorActionPanel
             :busy="busy"
+            :can-start="canSeparate"
             :enable-key-shift="enableKeyShift"
             :selected-key="selectedKey"
             :key-options="KEY_OPTIONS"
-            :selected-model-downloaded="selectedModelDownloaded"
             :save-dir="saveDir"
             :model-dir="modelDir"
             :downloading-model-id="downloadingModelId"
@@ -554,7 +746,17 @@ onUnmounted(() => {
             @pick-save-dir="pickSaveDir"
             @pick-model-dir="pickModelDir"
             @reveal-dir="revealDir"
+            @start="start"
           />
+
+          <!-- 说明：占满右栏剩余高度，和左栏卡片底部对齐 -->
+          <div class="sep-notes">
+            <p v-if="!selectedModelDownloaded" class="sep-notes-warn">
+              请先在左侧下载分离模型，未下载时无法开始分离。
+            </p>
+            <p>模型需先下载（约 64MB），下载后缓存到本地，无需重复下载。</p>
+            <p>开启变调后，按所选调性整体变调输出；选「原调」不做变调。</p>
+          </div>
         </div>
       </div>
     </div>
@@ -563,6 +765,55 @@ onUnmounted(() => {
 
 <style scoped>
 @reference "@/style.css";
+
+/* 双栏排布：左「来源 + 模型」/ 右「输出选项 + 说明」，常规窗口高度内不用滚动 */
+.sep-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: stretch;
+  padding-bottom: 14px;
+}
+
+.sep-content-col {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+/* 每栏最后一格吃掉剩余高度：左右两栏的底部因此对齐 */
+.sep-content-col > :last-child {
+  flex: 1;
+  min-height: 0;
+}
+
+/* 右栏底部说明（原来分散在模型卡、调性行里的两段提示） */
+.sep-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 4px 0;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.sep-notes p {
+  margin: 0;
+}
+
+.sep-notes-warn {
+  color: var(--color-primary-text);
+  font-weight: 600;
+}
+
+/* 窄窗口回退单栏，避免卡片被压得过窄 */
+@media (max-width: 1000px) {
+  .sep-content {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 
 .sep-view {
   /* 分离页 accent 跟随当前歌曲封面主色（内联 sepThemeVars 覆盖），未取到色时回退苹果蓝 */
@@ -591,21 +842,5 @@ onUnmounted(() => {
     radial-gradient(640px 440px at 12% 6%, var(--sep-glow-a), transparent 62%),
     radial-gradient(740px 540px at 88% 18%, var(--sep-glow-b), transparent 62%),
     radial-gradient(540px 440px at 58% 104%, rgba(0, 0, 0, 0.32), transparent 62%);
-}
-
-/* 收缩态下的开始分离小按钮 */
-.sep-collapsed-start {
-  @apply flex items-center gap-1.5 px-3 h-8 rounded-lg text-[12px] font-semibold transition-all active:scale-95 select-none;
-  background-color: var(--bg-info-card);
-  color: var(--color-primary-text);
-}
-
-.sep-collapsed-start:disabled {
-  opacity: 0.4;
-  pointer-events: none;
-}
-
-.sep-collapsed-start:hover:not(:disabled) {
-  @apply brightness-95;
 }
 </style>

@@ -3,21 +3,22 @@
  * 作者：知之（DAKE知之）
  * 版权：© 2026 LyriseMusic. All rights reserved.
  * 描述：分离页「输出选项」分区卡：保存位置 / 模型位置（可打开/更改）+
- *      调性开关与目标调下拉；开始分离按钮在顶部操作行（SeparatorActionBar）。
+ *      调性开关与目标调下拉 + 开始分离主按钮（贴在调性行右侧）。
  -->
 <script setup lang="ts">
 defineOptions({ name: 'separator-action-panel' });
 
 import { computed } from 'vue';
-import { iconFolderOpen, iconMusic } from '@/icons';
+import { iconFolderOpen, iconMusic, iconScissors } from '@/icons';
 import Tooltip from '@/components/ui/Tooltip.vue';
 
 const props = defineProps<{
   busy: 'idle' | 'separate' | 'save';
+  /** 是否允许开始分离（空闲 + 模型已下载 + 已设置保存位置）。 */
+  canStart: boolean;
   enableKeyShift: boolean;
   selectedKey: number;
   keyOptions: { label: string; value: number }[];
-  selectedModelDownloaded: boolean;
   saveDir: string;
   modelDir: string;
   downloadingModelId: string | null;
@@ -29,6 +30,7 @@ const emit = defineEmits<{
   (e: 'pickSaveDir'): void;
   (e: 'pickModelDir'): void;
   (e: 'revealDir', dir: string): void;
+  (e: 'start'): void;
 }>();
 
 /** 是否忙碌（禁止交互）。 */
@@ -41,7 +43,6 @@ const modelDirText = computed(() => props.modelDir || '未设置（请点击更�
 
 <template>
   <div class="sep-action-card">
-    <h2 class="sep-card-title">输出选项</h2>
     <div class="local-info-card">
       <!-- 保存位置 -->
       <div class="dir-row">
@@ -113,38 +114,46 @@ const modelDirText = computed(() => props.modelDir || '未设置（请点击更�
         </div>
       </div>
 
-      <!-- 调性 -->
-      <div class="sep-key-inline">
-        <span class="sep-key-icon"><Icon :icon="iconMusic" /></span>
-        <span class="sep-key-label">调性</span>
-        <span v-if="!selectedModelDownloaded" class="sep-key-hint">请先在上方下载分离模型</span>
-        <Tooltip :content="enableKeyShift ? '关闭变调' : '开启变调'">
-          <template #trigger>
-            <label class="sep-key-switch">
-              <input
-                type="checkbox"
-                class="sep-key-checkbox"
-                aria-label="启用变调"
-                :checked="enableKeyShift"
-                :disabled="isBusy"
-                @change="emit('updateKeyShift', ($event.target as HTMLInputElement).checked)"
-              />
-              <span class="sep-key-slider" />
-            </label>
-          </template>
-        </Tooltip>
-        <select
-          class="sep-key-select"
-          :disabled="isBusy || !enableKeyShift"
-          :value="selectedKey"
-          @change="emit('updateKey', Number(($event.target as HTMLSelectElement).value))"
-        >
-          <option v-for="k in keyOptions" :key="k.label" :value="k.value">
-            {{ k.label }}
-          </option>
-        </select>
+      <!-- 调性 + 开始分离 -->
+      <div class="sep-key-section">
+        <div class="sep-key-main">
+          <div class="sep-key-inline">
+            <span class="sep-key-icon"><Icon :icon="iconMusic" /></span>
+            <span class="sep-key-label">调性</span>
+            <Tooltip :content="enableKeyShift ? '关闭变调' : '开启变调'">
+              <template #trigger>
+                <label class="sep-key-switch">
+                  <input
+                    type="checkbox"
+                    class="sep-key-checkbox"
+                    aria-label="启用变调"
+                    :checked="enableKeyShift"
+                    :disabled="isBusy"
+                    @change="emit('updateKeyShift', ($event.target as HTMLInputElement).checked)"
+                  />
+                  <span class="sep-key-slider" />
+                </label>
+              </template>
+            </Tooltip>
+            <select
+              class="sep-key-select"
+              :disabled="isBusy || !enableKeyShift"
+              :value="selectedKey"
+              @change="emit('updateKey', Number(($event.target as HTMLSelectElement).value))"
+            >
+              <option v-for="k in keyOptions" :key="k.label" :value="k.value">
+                {{ k.label }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 主操作：开始分离 -->
+        <button type="button" class="sep-start-btn" :disabled="!canStart" @click="emit('start')">
+          <Icon :icon="iconScissors" width="16" height="16" />
+          <span>{{ isBusy ? '正在分离…' : '开始分离' }}</span>
+        </button>
       </div>
-      <p class="sep-key-sub">开启后按所选调性整体变调输出（原调不做变调）。</p>
     </div>
   </div>
 </template>
@@ -152,19 +161,10 @@ const modelDirText = computed(() => props.modelDir || '未设置（请点击更�
 <style scoped>
 @reference "@/style.css";
 
+/* 分区卡：标题已去掉，只留内容卡 */
 .sep-action-card {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-}
-
-/* 分区卡标题（与来源/模型卡一致） */
-.sep-card-title {
-  margin: 0 0 0 4px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--color-text-secondary);
 }
 
 .local-info-card {
@@ -249,15 +249,68 @@ const modelDirText = computed(() => props.modelDir || '未设置（请点击更�
   pointer-events: none;
 }
 
+/* 调性 + 开始分离：整体上下居中，主按钮贴右 */
+.sep-key-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.sep-key-main {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 开始分离主按钮（原顶部操作行的按钮，移到调性行右侧） */
+.sep-start-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-on-primary);
+  background-color: var(--color-primary);
+  transition:
+    filter 0.15s ease,
+    transform 0.15s ease;
+  user-select: none;
+}
+
+.sep-start-btn:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.sep-start-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.sep-start-btn:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sep-start-btn,
+  .sep-start-btn:active:not(:disabled) {
+    transition: none;
+    transform: none;
+  }
+}
+
 /* 调性：横排（图标 + 文字 + 提示 + 开关 + 下拉） */
 .sep-key-inline {
   display: flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
-  margin-top: 8px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border-subtle);
 }
 
 .sep-key-icon {
@@ -274,22 +327,6 @@ const modelDirText = computed(() => props.modelDir || '未设置（请点击更�
   font-weight: 600;
   color: var(--color-text-main);
   white-space: nowrap;
-}
-
-.sep-key-hint {
-  margin-left: auto;
-  font-size: 11.5px;
-  color: var(--color-text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.sep-key-sub {
-  margin: 8px 0 0;
-  font-size: 11px;
-  line-height: 1.6;
-  color: var(--color-text-secondary);
 }
 
 /* 开关 */
