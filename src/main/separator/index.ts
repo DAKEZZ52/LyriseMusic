@@ -5,6 +5,7 @@
  * 版权：Copyright © 2026 Dake（知之Dake）. All Rights Reserved.
  */
 import { app, dialog, shell } from 'electron';
+import log from 'electron-log';
 import fs from 'node:fs';
 import path from 'node:path';
 import { ipcRegistry } from '../ipc/registry';
@@ -55,21 +56,24 @@ function safeFileName(name: string): string {
 /** 注册分离模块全部 IPC 处理器。 */
 export const registerSeparatorHandlers = (context: IpcContext): void => {
   // 模型列表
-  ipcRegistry.registerHandler(SEPARATOR_IPC_CHANNELS.listModels, (): SeparatorModelInfo[] => {
-    // 服务端关闭该功能时，列表查询直接报错，渲染层据此显示禁用提示
-    assertFeatureEnabled('separator');
-    return MODEL_LIST.map((spec) => ({
-      id: spec.id,
-      name: spec.name,
-      downloaded: isModelDownloaded(spec),
-    }));
-  });
+  ipcRegistry.registerHandler(
+    SEPARATOR_IPC_CHANNELS.listModels,
+    async (): Promise<SeparatorModelInfo[]> => {
+      // 服务端关闭该功能时，列表查询直接报错，渲染层据此显示禁用提示
+      await assertFeatureEnabled('separator');
+      return MODEL_LIST.map((spec) => ({
+        id: spec.id,
+        name: spec.name,
+        downloaded: isModelDownloaded(spec),
+      }));
+    },
+  );
 
   // 独立下载模型（与「开始分离」解耦：模型下载在分离模型区单独触发）
   ipcRegistry.registerHandler(
     SEPARATOR_IPC_CHANNELS.downloadModel,
     async (event, payload: { modelId: string }): Promise<boolean> => {
-      assertFeatureEnabled('separator');
+      await assertFeatureEnabled('separator');
       const spec = MODEL_LIST.find((s) => s.id === payload?.modelId);
       if (!spec) throw new Error('未找到所选模型');
       if (isModelDownloaded(spec)) return true;
@@ -91,7 +95,7 @@ export const registerSeparatorHandlers = (context: IpcContext): void => {
   ipcRegistry.registerHandler(
     SEPARATOR_IPC_CHANNELS.start,
     async (event, payload: { modelId: string; input: SeparatorPcmInput }) => {
-      assertFeatureEnabled('separator');
+      await assertFeatureEnabled('separator');
       const spec = MODEL_LIST.find((s) => s.id === payload.modelId);
       if (!spec) throw new Error('未找到所选模型');
       if (!isModelDownloaded(spec)) {
@@ -194,9 +198,20 @@ export const registerSeparatorHandlers = (context: IpcContext): void => {
     },
   );
 
-  // 默认保存位置：桌面/DAKESeparation，不存在则自动新建
+  // 默认保存位置：桌面/人声分离，不存在则自动新建
   ipcRegistry.registerHandler(SEPARATOR_IPC_CHANNELS.getDefaultSaveDir, async () => {
-    const dir = path.join(app.getPath('desktop'), 'DAKESeparation');
+    const desktop = app.getPath('desktop');
+    const dir = path.join(desktop, '人声分离');
+    // 老版本的默认目录（桌面/DAKESeparation）：新目录还没有时整体改名过去，
+    // 免得用户之前的分离结果在默认位置里"不见了"。改名失败就留着旧目录继续用。
+    const legacyDir = path.join(desktop, 'DAKESeparation');
+    if (!fs.existsSync(dir) && fs.existsSync(legacyDir)) {
+      try {
+        fs.renameSync(legacyDir, dir);
+      } catch (error) {
+        log.warn('[Separator] 旧默认目录改名失败，保留原目录：', error);
+      }
+    }
     fs.mkdirSync(dir, { recursive: true });
     return dir;
   });

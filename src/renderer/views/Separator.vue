@@ -64,7 +64,7 @@ const downloadPercent = ref(0);
 const result = ref<SeparatorResult | null>(null);
 const output = ref<SeparatorOutput | null>(null);
 const errorMsg = ref('');
-/** 保存位置（分离前必须已设置；默认桌面/DAKESeparation，自动新建）。 */
+/** 保存位置（分离前必须已设置；默认桌面/人声分离，自动新建）。 */
 const saveDir = ref<string>('');
 /** 模型保存目录（默认用户数据目录 models，可在分离模型区更改并持久化）。 */
 const modelDir = ref<string>('');
@@ -424,7 +424,7 @@ onMounted(async () => {
     if (p.stage === 'download') downloadPercent.value = p.percent;
   });
 
-  // 默认保存位置：桌面/DAKESeparation（不存在则自动新建）
+  // 默认保存位置：桌面/人声分离（不存在则自动新建）
   try {
     saveDir.value = await window.electron.separator.getDefaultSaveDir();
   } catch {

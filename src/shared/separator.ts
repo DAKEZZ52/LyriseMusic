@@ -66,7 +66,7 @@ export const SEPARATOR_IPC_CHANNELS = {
   start: 'separator:start',
   /** 保存分离结果到指定目录（入参 { cacheId, dir }，直接写盘不弹窗，返回 SeparatorOutput）。 */
   save: 'separator:save',
-  /** 获取默认保存位置（桌面/DAKESeparation，不存在则自动创建，返回绝对路径字符串）。 */
+  /** 获取默认保存位置（桌面/人声分离，不存在则自动创建，返回绝对路径字符串）。 */
   getDefaultSaveDir: 'separator:getDefaultSaveDir',
   /** 弹出目录选择框选择保存位置（返回绝对路径字符串；取消返回 null）。 */
   pickSaveDir: 'separator:pickSaveDir',

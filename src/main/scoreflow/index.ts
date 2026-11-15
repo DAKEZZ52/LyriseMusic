@@ -43,9 +43,9 @@ function normalizeInput(input: ScorePcmInput | undefined): ScorePcmInput {
 /** 注册扒谱模块全部 IPC 处理器。 */
 export const registerScoreflowHandlers = (context: IpcContext): void => {
   /** 引擎是否可用（页面进入时先探一次，不可用就提示去哪配）。 */
-  ipcRegistry.registerHandler(SCOREFLOW_IPC_CHANNELS.engineStatus, () => {
+  ipcRegistry.registerHandler(SCOREFLOW_IPC_CHANNELS.engineStatus, async () => {
     // 服务端关闭扒谱时直接报错，页面据此显示禁用提示
-    assertFeatureEnabled('scoreflow');
+    await assertFeatureEnabled('scoreflow');
     return probeEngine();
   });
 
@@ -53,7 +53,7 @@ export const registerScoreflowHandlers = (context: IpcContext): void => {
   ipcRegistry.registerHandler(
     SCOREFLOW_IPC_CHANNELS.transcribe,
     async (event, payload: { input: ScorePcmInput; options?: ScoreOptions }) => {
-      assertFeatureEnabled('scoreflow');
+      await assertFeatureEnabled('scoreflow');
       const input = normalizeInput(payload?.input);
       const options = payload?.options ?? {};
 
