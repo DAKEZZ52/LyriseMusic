@@ -1,5 +1,6 @@
 import { session, shell, type WebContents } from 'electron';
 import log from './logger';
+import { withImageCorsHeader } from './imageCors';
 
 /**
  * 安全加固（P0）
@@ -36,22 +37,23 @@ export function installSecurityHardening(isDev: boolean): void {
     return mediaType === 'audio' || mediaType === undefined;
   });
 
-  // CSP 只加在生产构建的响应头；开发服务器需要 Vite 的 HMR/eval
-  if (!isDev) {
-    defaultSession.webRequest.onHeadersReceived((details, callback) => {
-      const url = details.url ?? '';
-      if (!/^https?:/i.test(url)) {
-        callback({ responseHeaders: details.responseHeaders });
-        return;
-      }
-      callback({
-        responseHeaders: {
-          ...details.responseHeaders,
-          'Content-Security-Policy': [CONTENT_SECURITY_POLICY],
-        },
-      });
-    });
-  }
+  // 响应头只在生产构建里加 CSP；开发服务器需要 Vite 的 HMR/eval。
+  //
+  // ⚠️ Electron 的 webRequest 同一事件只认**最后注册**的监听器，重复注册会
+  // 静默顶掉前一个。所以这里一个监听器同时负责两件事：
+  //   1. 生产构建的 CSP 响应头
+  //   2. 图片响应的 Access-Control-Allow-Origin（封面取色要读 canvas 像素，
+  //      不补这个头 canvas 会被跨域污染，取色永远失败、主题色不动）
+  // 之前 imageCors.ts 也注册了一个，结果先注册的 CSP 被顶掉，生产环境等于没加。
+  defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    const url = details.url ?? '';
+    let responseHeaders: Record<string, string[]> = { ...(details.responseHeaders ?? {}) };
+    if (!isDev && /^https?:/i.test(url)) {
+      responseHeaders['Content-Security-Policy'] = [CONTENT_SECURITY_POLICY];
+    }
+    responseHeaders = withImageCorsHeader(details.resourceType, responseHeaders);
+    callback({ responseHeaders });
+  });
 }
 
 const isInternalPage = (target: string, devOrigin: string | null): boolean => {

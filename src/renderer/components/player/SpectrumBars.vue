@@ -5,7 +5,8 @@
  * 数据来自主进程的 audio-spectrum 推送（原生播放引擎的 FFT 结果），canvas 绘制。
  * 四种样式：柱状 / 点阵 / 波形 / 对称，可在设置里切换。
  */
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { useThemeStore } from '@/stores/theme';
 
 export type SpectrumStyle = 'bars' | 'dots' | 'wave' | 'mirror';
 
@@ -19,24 +20,34 @@ const props = withDefaults(
 );
 
 const canvasRef = ref<HTMLCanvasElement | null>(null);
+const themeStore = useThemeStore();
 
 let unsubscribe: (() => void) | null = null;
 let rafId = 0;
 const levels = new Float32Array(64);
 const targets = new Float32Array(64);
 let accent = '#0a84ff';
-let highlight = 'rgba(255,255,255,0.85)';
+let accentTop = '#7db9ff';
 
+/**
+ * 频谱颜色跟随主题色（封面取色 / 预设 / 自定义都会变）。
+ *
+ * 优先读 :root 上的 CSS 变量：主题色切换有 600ms 过渡，变量每帧都在变，
+ * 读它能和界面其它元素同步渐变。变量缺失时（例如插件沙箱里样式还没落地）
+ * 回退到主题 store 的归一化色值。
+ */
 const readColors = () => {
+  let primary = '';
+  let primaryText = '';
   try {
     const styles = getComputedStyle(document.documentElement);
-    const primary = styles.getPropertyValue('--color-primary').trim();
-    if (primary) accent = primary;
-    const onPrimary = styles.getPropertyValue('--color-on-primary').trim();
-    if (onPrimary) highlight = onPrimary;
+    primary = styles.getPropertyValue('--color-primary').trim();
+    primaryText = styles.getPropertyValue('--color-primary-text').trim();
   } catch {
-    // 取不到就用默认色
+    // 拿不到计算样式就完全走 store
   }
+  accent = primary || themeStore.accentColor || '#0a84ff';
+  accentTop = primaryText || themeStore.accentTextColor || accent;
 };
 
 const stepLevels = () => {
@@ -74,7 +85,7 @@ const draw = () => {
   const count = props.bars;
   const gradient = ctx.createLinearGradient(0, height, 0, 0);
   gradient.addColorStop(0, accent);
-  gradient.addColorStop(1, highlight);
+  gradient.addColorStop(1, accentTop);
 
   if (props.styleName === 'dots') {
     const gap = width / count;
@@ -164,6 +175,7 @@ const draw = () => {
 };
 
 let colorObserver: MutationObserver | null = null;
+let stopThemeWatch: (() => void) | null = null;
 
 onMounted(() => {
   readColors();
@@ -173,6 +185,17 @@ onMounted(() => {
     attributes: true,
     attributeFilter: ['style', 'class'],
   });
+  // 兜底：store 里的主题色变化时也刷新（CSS 变量被作用域覆盖或尚未落地时生效）
+  stopThemeWatch = watch(
+    () => [
+      themeStore.accentColor,
+      themeStore.accentTextColor,
+      themeStore.coverColor,
+      themeStore.isDark,
+    ],
+    () => readColors(),
+    { flush: 'post' },
+  );
   rafId = requestAnimationFrame(draw);
   try {
     unsubscribe =
@@ -196,6 +219,8 @@ onMounted(() => {
 onBeforeUnmount(() => {
   colorObserver?.disconnect();
   colorObserver = null;
+  stopThemeWatch?.();
+  stopThemeWatch = null;
   cancelAnimationFrame(rafId);
   unsubscribe?.();
   unsubscribe = null;

@@ -232,3 +232,121 @@ export const createAccentPaletteFromPrimary = (primary: string, dark: boolean): 
 };
 export const getAccentPalette = (hex: string, dark: boolean) =>
   createAccentPaletteFromPrimary(normalizeAccent(hex, dark), dark);
+
+// ─────────────── 封面主色提取 ───────────────
+
+interface ColorSample {
+  score: number;
+  r: number;
+  g: number;
+  b: number;
+}
+
+export interface DominantColorOptions {
+  /** 色相分桶数量，默认 18（每 20° 一桶） */
+  bucketCount?: number;
+  /** 全图平均饱和度低于该值视为过灰，返回 null，默认 0.15 */
+  minAverageSaturation?: number;
+  /** 近白阈值（HSL 亮度高于此值的像素不参与投票），默认 0.88 */
+  maxLightness?: number;
+  /** 近黑阈值（HSL 亮度低于此值的像素不参与投票），默认 0.12 */
+  minLightness?: number;
+  /** 获胜桶里参与求平均的像素比例，默认 0.12 */
+  topRatio?: number;
+  /** 获胜桶里至少平均多少个像素，默认 8 */
+  minSamples?: number;
+}
+
+/**
+ * 从 RGBA 像素里挑出封面主色。
+ *
+ * 三个取舍（都为了"不同封面要给出不同主题色、且不偏离主色"）：
+ *
+ * 1. **投票前先滤掉近白/近黑像素**。封面大面积浅色背景（米白、奶白）亮度很高，
+ *    不滤掉会在下面按面积投票时压过真正的主体色。
+ * 2. **按面积加权总分选色相桶**。背景被滤掉后，面积最大且足够鲜艳的色相胜出；
+ *    小块高饱和点缀（如封面上的一行黄字）面积太小，不会抢走大片主体色的位置。
+ * 3. **只在获胜桶里取高分像素求平均**。整桶加权平均会把高饱和像素和同桶里的
+ *    暗部/灰部混成灰调，再经 `normalizeAccent` 夹到同一色带后，几首歌的主题色
+ *    几乎一样，表现就是切歌时"主题色不变"。
+ *
+ * 返回 `#rrggbb`；采样为空或整图过灰时返回 null。
+ */
+export const pickDominantColorFromPixels = (
+  data: ArrayLike<number>,
+  options: DominantColorOptions = {},
+): string | null => {
+  const bucketCount = Math.max(1, Math.round(options.bucketCount ?? 18));
+  const minAverageSaturation = options.minAverageSaturation ?? 0.15;
+  const maxLightness = options.maxLightness ?? 0.88;
+  const minLightness = options.minLightness ?? 0.12;
+  const topRatio = Math.min(1, Math.max(0.01, options.topRatio ?? 0.12));
+  const minSamples = Math.max(1, Math.round(options.minSamples ?? 8));
+
+  if (!data || data.length < 4) return null;
+
+  const buckets: ColorSample[][] = Array.from({ length: bucketCount }, () => []);
+  const weights = new Array<number>(bucketCount).fill(0);
+  let totalSaturation = 0;
+  let sampleCount = 0;
+
+  for (let i = 0; i + 3 < data.length; i += 4) {
+    if (data[i + 3] < 200) continue;
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    const { h, s, l } = rgbToHsl(r, g, b);
+
+    // 过滤近白、近黑、灰度像素
+    if (l < minLightness || l > maxLightness) continue;
+    if (s < 0.18) continue;
+
+    sampleCount += 1;
+    totalSaturation += s;
+
+    // 评分：饱和度越高、亮度越接近 0.5 分数越高
+    const lightnessScore = 1 - Math.abs(l - 0.5) * 1.2;
+    const score = s * Math.max(0.15, lightnessScore);
+
+    const index = Math.min(bucketCount - 1, Math.floor(h / (360 / bucketCount)));
+    weights[index] += score;
+    buckets[index].push({ score, r, g, b });
+  }
+
+  // 没采到像素，或整图太灰：交给调用方回落默认主题色
+  if (sampleCount === 0 || totalSaturation / sampleCount < minAverageSaturation) return null;
+
+  let bestIndex = -1;
+  let bestWeight = 0;
+  for (let i = 0; i < bucketCount; i += 1) {
+    if (weights[i] > bestWeight) {
+      bestWeight = weights[i];
+      bestIndex = i;
+    }
+  }
+  if (bestIndex < 0 || bestWeight <= 0) return null;
+
+  const samples = buckets[bestIndex];
+  if (samples.length === 0) return null;
+
+  samples.sort((a, b) => b.score - a.score);
+  const take = Math.min(
+    samples.length,
+    Math.max(minSamples, Math.round(samples.length * topRatio)),
+  );
+
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  let weight = 0;
+  for (let i = 0; i < take; i += 1) {
+    const sample = samples[i];
+    r += sample.r * sample.score;
+    g += sample.g * sample.score;
+    b += sample.b * sample.score;
+    weight += sample.score;
+  }
+  if (weight <= 0) return null;
+
+  return accentHex({ r: r / weight, g: g / weight, b: b / weight });
+};

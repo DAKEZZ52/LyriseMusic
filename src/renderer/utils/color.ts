@@ -2,6 +2,7 @@ import {
   normalizeAccent,
   getAccentPalette,
   createAccentPaletteFromPrimary,
+  pickDominantColorFromPixels,
   rgbToOklab,
   oklabToRgb,
 } from '../../shared/accentPalette';
@@ -199,69 +200,7 @@ export const extractDominantColor = (
         ctx.drawImage(img, 0, 0, size, size);
         const data = ctx.getImageData(0, 0, size, size).data;
 
-        // 按色相分桶（每 20° 一桶，共 18 个桶）
-        const BUCKET_COUNT = 18;
-        const buckets = Array.from({ length: BUCKET_COUNT }, () => ({
-          weight: 0,
-          r: 0,
-          g: 0,
-          b: 0,
-        }));
-        let totalSat = 0;
-        let sampleCount = 0;
-
-        for (let i = 0; i < data.length; i += 4) {
-          const a = data[i + 3];
-          if (a < 200) continue;
-          const r = data[i];
-          const g = data[i + 1];
-          const b = data[i + 2];
-          const hsl = rgbToHsl(r, g, b);
-
-          // 过滤近白、近黑、灰度像素
-          if (hsl.l < 0.15 || hsl.l > 0.92) continue;
-          if (hsl.s < 0.18) continue;
-
-          sampleCount += 1;
-          totalSat += hsl.s;
-
-          // 评分：饱和度越高、亮度越接近 0.5 分数越高
-          const lScore = 1 - Math.abs(hsl.l - 0.5) * 1.2;
-          const score = hsl.s * Math.max(0.15, lScore);
-
-          const bucketIdx = Math.min(BUCKET_COUNT - 1, Math.floor(hsl.h / (360 / BUCKET_COUNT)));
-          const bucket = buckets[bucketIdx];
-          bucket.weight += score;
-          bucket.r += r * score;
-          bucket.g += g * score;
-          bucket.b += b * score;
-        }
-
-        // 没采到像素，或图片整体太灰，放弃
-        if (sampleCount === 0 || totalSat / Math.max(1, sampleCount) < 0.15) {
-          finish(null);
-          return;
-        }
-
-        // 找出权重最高的桶
-        let bestIdx = -1;
-        let bestWeight = 0;
-        for (let i = 0; i < buckets.length; i += 1) {
-          if (buckets[i].weight > bestWeight) {
-            bestWeight = buckets[i].weight;
-            bestIdx = i;
-          }
-        }
-        if (bestIdx < 0 || bestWeight <= 0) {
-          finish(null);
-          return;
-        }
-
-        const best = buckets[bestIdx];
-        const r = best.r / best.weight;
-        const g = best.g / best.weight;
-        const b = best.b / best.weight;
-        finish(rgbToHex(r, g, b));
+        finish(pickDominantColorFromPixels(data));
       } catch {
         finish(null);
       }
