@@ -418,7 +418,19 @@ const removeSearchHistory = (keyword: string) => {
   settingStore.removeFromSearchHistory(keyword);
 };
 
+// 这一次回车是否已经在 keydown 里提交过，避免 keyup 再提交一次
+let enterHandledByKeydown = false;
+
+const runEnterSubmit = () => {
+  const selected =
+    isSearchFocused.value && showSuggestions.value
+      ? flatSuggestions.value[activeSuggestionIndex.value]
+      : undefined;
+  submitSearch(selected?.text);
+};
+
 const handleSearchKeydown = (e: KeyboardEvent) => {
+  if (e.key === 'Enter') enterHandledByKeydown = false;
   if (e.isComposing || e.keyCode === 229) return;
   if (e.key === 'Escape') {
     e.preventDefault();
@@ -429,11 +441,8 @@ const handleSearchKeydown = (e: KeyboardEvent) => {
   if (e.key === 'Enter') {
     e.preventDefault();
     e.stopPropagation();
-    const selected =
-      isSearchFocused.value && showSuggestions.value
-        ? flatSuggestions.value[activeSuggestionIndex.value]
-        : undefined;
-    submitSearch(selected?.text);
+    enterHandledByKeydown = true;
+    runEnterSubmit();
     return;
   }
   if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
@@ -456,6 +465,24 @@ const handleSearchKeydown = (e: KeyboardEvent) => {
       ?.querySelector(`[data-suggestion-index="${activeSuggestionIndex.value}"]`)
       ?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   });
+};
+
+/**
+ * 中文输入法兜底：用回车确认候选词时，那一次 keydown 带 isComposing/keyCode 229
+ * 会被 handleSearchKeydown 直接忽略，而随后的 keyup 是普通 Enter。
+ * 没有这个补提交，用户按一次回车就什么都不会发生（观感就是"回车不能用"）。
+ * 普通回车已经由 keydown 提交过，这里靠 enterHandledByKeydown 去重。
+ */
+const handleSearchKeyup = (e: KeyboardEvent) => {
+  if (e.key !== 'Enter') return;
+  if (enterHandledByKeydown) {
+    enterHandledByKeydown = false;
+    return;
+  }
+  if (e.isComposing || e.keyCode === 229) return;
+  e.preventDefault();
+  e.stopPropagation();
+  runEnterSubmit();
 };
 
 watch(
@@ -630,6 +657,7 @@ onUnmounted(() => {
                   :placeholder="defaultKeyword || '搜索音乐、歌手、专辑'"
                   @input="handleSearchInput(searchQuery)"
                   @keydown="handleSearchKeydown"
+                  @keyup="handleSearchKeyup"
                   @focus="handleSearchFocus"
                   @click="handleSearchFocus"
                   @blur="handleSearchBlur"

@@ -84,7 +84,7 @@ function setup() {
   const { code } = transformSync(
     'let suggestTimer=null; let suggestionRequest=0; let suggestionBlurTimer=null;\n' +
       snippet +
-      '\nreturn {handleSearchKeydown,handleSearchFocus,handleSearchBlur,fetchSuggestions,handleSearchInput,submitSearch,clearSearchHistory,removeSearchHistory,handleSearchInteractOutside,handleGlobalPointerDown,handleNativePointerDown};',
+      '\nreturn {handleSearchKeydown,handleSearchKeyup,handleSearchFocus,handleSearchBlur,fetchSuggestions,handleSearchInput,submitSearch,clearSearchHistory,removeSearchHistory,handleSearchInteractOutside,handleGlobalPointerDown,handleNativePointerDown};',
     { loader: 'ts' },
   );
   return {
@@ -302,6 +302,25 @@ test('Enter submits the active suggestion, while no selection submits the input'
   const raw = withSuggestions();
   raw.api.handleSearchKeydown(keyEvent('Enter'));
   assert.equal(raw.navigations[0].query.q, 'love');
+});
+
+test('a plain Enter submits once and its keyup does not submit again', () => {
+  const s = withSuggestions();
+  s.api.handleSearchKeydown(keyEvent('Enter'));
+  assert.equal(s.navigations.length, 1);
+  s.api.handleSearchKeyup(keyEvent('Enter'));
+  assert.equal(s.navigations.length, 1, 'keydown 已提交时 keyup 不能再搜一次');
+});
+
+test('the Enter that confirms an IME candidate still submits on keyup', () => {
+  const s = withSuggestions();
+  // 中文输入法：确认候选词那次 keydown 带 isComposing/keyCode 229，必须放行给输入法
+  s.api.handleSearchKeydown(keyEvent('Enter', { isComposing: true, keyCode: 229 }));
+  assert.equal(s.navigations.length, 0, '组合中的回车不能提交');
+  // 随后的 keyup 是普通 Enter，应当补一次提交，否则用户按一次回车毫无反应
+  s.api.handleSearchKeyup(keyEvent('Enter'));
+  assert.equal(s.navigations.length, 1);
+  assert.equal(s.navigations[0].query.q, 'love');
 });
 
 test('IME confirmation and navigation are not intercepted', () => {
