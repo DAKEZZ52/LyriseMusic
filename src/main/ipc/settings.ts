@@ -1487,12 +1487,6 @@ export const registerSettingsHandlers = ({ getMainWindow, playerRef }: IpcContex
     await shell.openExternal(safeUrl);
   });
 
-  ipcRegistry.registerListener('open-disclaimer', () => {
-    const win = getMainWindow();
-    if (!win) return;
-    win.webContents.send('open-disclaimer');
-  });
-
   ipcRegistry.registerListener('clear-app-data', async (event) => {
     // 破坏性操作：在主进程再确认一次，避免渲染层误触或注入后直接清空数据
     const parentWindow = BrowserWindow.fromWebContents(event.sender);

@@ -474,11 +474,6 @@ export const useSettingStore = defineStore('setting', {
         );
       }
     },
-    openDisclaimer() {
-      if (window.electron?.ipcRenderer) {
-        window.electron.ipcRenderer.send('open-disclaimer', null);
-      }
-    },
     syncCloseBehavior() {
       if (window.electron?.ipcRenderer) {
         window.electron.ipcRenderer.send('update-close-behavior', this.closeBehavior);
@@ -813,10 +808,6 @@ export const useSettingStore = defineStore('setting', {
       this.lyricsPageSkinConfigs = Object.fromEntries(kept);
     },
 
-    async setEnableStartupSound(val: boolean) {
-      this.enableStartupSound = val;
-      await window.electron?.ipcRenderer.invoke('settings:setStartupSound', val);
-    },
     setCustomBackgroundImage(base64: string) {
       this.customBackgroundImage = base64;
     },

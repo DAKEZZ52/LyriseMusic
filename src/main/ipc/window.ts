@@ -105,10 +105,6 @@ export const registerWindowHandlers = ({ getMainWindow }: IpcContext) => {
     },
   );
 
-  ipcRegistry.registerListener('window-drag:start', () => {});
-  ipcRegistry.registerListener('window-drag:move', () => {});
-  ipcRegistry.registerListener('window-drag:end', () => {});
-
   ipcRegistry.registerListener('window-toggle', () => {
     const browserWindow = getMainWindow();
     if (!browserWindow) return;

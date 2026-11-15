@@ -224,7 +224,7 @@ onUnmounted(() => {
 
     <main class="startup-main">
       <div class="startup-mark">
-        <span class="startup-mark-echo">Dake</span>
+        <span class="startup-mark-name">Lyrise</span>
         <span class="startup-mark-music">Music</span>
       </div>
       <div v-if="!hasError" class="startup-progress">
