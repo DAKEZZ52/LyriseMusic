@@ -73,8 +73,8 @@ Thumbs.db
 cloudflare/**/.wrangler/
 cloudflare/**/*.dev.vars
 cloudflare/**/*.local.toml
-* - 閸擃垱婀?*
-room-server/缂冩垹鐝悧鍫熸拱/
+* - 副本*
+room-server/网站版本/
 .git-backup-*/
 .dev-userdata/
 

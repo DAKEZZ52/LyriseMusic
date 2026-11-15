@@ -5,7 +5,6 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-import Database from 'better-sqlite3';
 import fs from "node:fs";
 import zlib from "node:zlib";
 import path from 'path';
@@ -174,7 +173,7 @@ router.post('/bad-words/add', requireAdmin, (req, res) => {
   try {
     db.prepare('INSERT INTO bad_words (word, created_at) VALUES (?, ?)').run(w, Date.now());
     res.json({ ok: true });
-  } catch (e) {
+  } catch {
     res.status(400).json({ error: '该词已存在' });
   }
 });
@@ -189,7 +188,7 @@ router.post('/bad-words/:id/delete', requireAdmin, (req, res) => {
 const NOTICE_FILE = path.join(__dirname, "notice.txt");
 router.get("/notice", requireAdmin, (req, res) => {
   try { res.json({ notice: fs.readFileSync(NOTICE_FILE, "utf8").trim() }); }
-  catch(e){ res.json({ notice: "" }); }
+  catch{ res.json({ notice: "" }); }
 });
 router.post("/notice", requireAdmin, (req, res) => {
   const notice = String(req.body?.notice || "").slice(0, 500);

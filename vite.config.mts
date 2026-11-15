@@ -1,12 +1,15 @@
 import { defineConfig } from 'vite';
 import { readFileSync, existsSync } from 'node:fs';
+import { createPrivateKey, sign } from 'node:crypto';
 import type { Plugin } from 'vite';
 import { CONTENT_SECURITY_POLICY } from './src/shared/csp';
 
 // LyriseMusic: 构建标识 + Ed25519 签名
 // 私钥只在打包机（.keys/build-ed25519.pem），服务器只存公钥；
 // 改过的包无法伪造签名，服务端据此拒绝非官方构建。
-const pkgVersion = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')).version;
+const pkgVersion = JSON.parse(
+  readFileSync(new URL('./package.json', import.meta.url), 'utf8'),
+).version;
 const buildStamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\..+$/, '').slice(0, 13);
 const buildChannel = process.env.BETA ? 'beta' : 'release';
 
@@ -19,7 +22,6 @@ function buildSignedTag(): string {
       console.warn('[build] 未找到签名私钥，构建标识降级为 dev:', keyPath);
       return `v=${pkgVersion};b=${buildStamp};ch=dev`;
     }
-    const { createPrivateKey, sign } = require('node:crypto') as typeof import('node:crypto');
     const key = createPrivateKey(readFileSync(keyPath));
     const sig = sign(null, Buffer.from(base), key).toString('base64url');
     return `${base};sig=${sig}`;

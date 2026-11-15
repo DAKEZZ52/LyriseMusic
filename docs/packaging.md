@@ -31,7 +31,7 @@ Before moving another dependency:
    server dependencies, signing settings, and archive format. Report compressed
    archive size separately from installed application size.
 
-The server submodule has its own runtime dependencies. CI replaces its pnpm
+The vendored `server/` tree (酷狗接口服务) has its own runtime dependencies. CI replaces its pnpm
 workspace links with an npm production install before packaging. When preparing
 local comparison builds, use an equivalent flat production dependency directory;
 copying workspace symlinks through `extraResources` can create broken links.

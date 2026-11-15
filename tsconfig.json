@@ -18,6 +18,8 @@
     },
     "types": ["node", "vite/client"]
   },
-  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue"],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  // 不再用 project reference 串 tsconfig.node.json：它和本项目的 include 都覆盖
+  // src/shared/csp.ts（vite 配置要读 CSP 常量），composite 引用会撞出 TS6305。
+  // 配置文件的类型检查由 `pnpm typecheck` 的第二条命令单独跑。
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue"]
 }

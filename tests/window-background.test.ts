@@ -160,4 +160,3 @@ test('renderer preserves the app transparency layer', () => {
     ...DEFAULT_WINDOW_BACKGROUND,
   });
 });
-

@@ -418,7 +418,7 @@ function verifyBuildTag(tag) {
   try {
     const ok = crypto.verify(null, Buffer.from(base), buildPublicKey, Buffer.from(sig, 'base64url'));
     return ok ? { ok: true, reason: 'verified', version } : { ok: false, reason: 'bad-signature', version };
-  } catch (error) {
+  } catch {
     return { ok: false, reason: 'verify-error', version };
   }
 }

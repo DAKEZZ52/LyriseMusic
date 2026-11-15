@@ -15,6 +15,8 @@ export default [
       '**/*.d.ts',
       '.dev-userdata/**',
       'public/**',
+      // 截图与一次性验证脚本（已被 .gitignore 忽略，不是产品代码）
+      'screenshots/**',
       'server/**',
       // 第三方 vendored 代码（ffmpeg-audio 等）不参与本项目 lint
       'native/**/vendor/**',

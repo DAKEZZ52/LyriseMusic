@@ -55,6 +55,15 @@
 - 签名缺失（老发布）→ 记日志放行；签名无效 / 版本不符 → 阻止安装
 - 发布流程多一步：`pnpm release:sign`，把 `latest.yml.sig` 一起传到 `/dl/`
 
+### 8. 依赖漏洞处置（2026-11-14）
+
+- 升级直接依赖：`axios` → 1.21.x、`music-metadata` → 11.16.x
+- 传递依赖用 override 顶到修复版（`package.json` 的 `pnpm.overrides`，`server/package.json` 的 `overrides` 供 CI 里的 `npm install` 用）：
+  `body-parser` 1.20.9、`proxy-addr` 2.0.8、`qs` 6.16.x、`form-data` 4.0.6、`follow-redirects` 1.16.3、`js-yaml` 4.3.2、`node-forge` 1.4.3
+- 复核命令（npmmirror 没有 audit 端点，必须显式指定官方源）：
+  `pnpm audit --prod --registry https://registry.npmjs.org`
+  目标：critical / high / moderate 全为 0
+
 ## 还没做（按优先级）
 
 | 项 | 说明 |
@@ -62,7 +71,7 @@
 | 验证码隔离（已决定暂不做） | `TCaptcha.js` 仍加载在主世界。彻底方案是独立窗口（无 preload），但会把内嵌浮层变成弹窗，影响登录流畅度；**2026-11-06 决定保持内嵌**，靠 CSP 白名单把脚本限制在腾讯域内。若将来验证码要重构，顺手做掉 |
 
 | 真正的代码签名 | `win.publisherName` 需要付费证书才能生效；当前用自签清单签名替代 |
-| IPC 数量收敛 | 当前 125 个 handler，preload 1271 行，建议按域收口 |
+| IPC 数量收敛 | 当前 145 个 handler，preload 1317 行，建议按域收口 |
 | 聊天记录全量鉴权 | 公开房仍是公开读；要等客户端都升级到带 token 的版本再收紧 |
 
 ## 改动验证方式

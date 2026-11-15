@@ -12,18 +12,15 @@ test('Windows 11 uses native acrylic; older builds depend on accent availability
     live: true,
     transparentMode: 'layered',
   });
-  assert.deepEqual(
-    resolveWindowBackgroundCapabilities({ platform: 'win32', build: 19045 }),
-    {
-      strategy: 'default',
-      supportsFrost: false,
-      frostBackend: 'none',
-      frostMode: 'none',
-      frostLive: true,
-      live: true,
-      transparentMode: 'layered',
-    },
-  );
+  assert.deepEqual(resolveWindowBackgroundCapabilities({ platform: 'win32', build: 19045 }), {
+    strategy: 'default',
+    supportsFrost: false,
+    frostBackend: 'none',
+    frostMode: 'none',
+    frostLive: true,
+    live: true,
+    transparentMode: 'layered',
+  });
   assert.deepEqual(
     resolveWindowBackgroundCapabilities({
       platform: 'win32',

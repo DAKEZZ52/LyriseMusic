@@ -188,7 +188,6 @@ function main() {
   // 1. 染色：黑底 + 镂空字 → 蓝底 + 白字
   const painted = paintBlock(src);
 
-
   // 3. Windows: 多尺寸 ICO
   const winSizes = [16, 20, 24, 32, 48, 64, 128, 256];
   const pngBuffers = winSizes.map((size) => ({
