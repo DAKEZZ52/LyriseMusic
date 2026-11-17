@@ -31,7 +31,7 @@
 ## IPC 约定
 
 - 注册入口：`src/main/ipc/registry.ts` 的 `ipcRegistry.registerHandler / registerListener`
-- 当前 **145 个 handler + 34 个 listener（179 个通道）**，全部集中注册，前缀按域命名（`player:`、`storage:`、`local-music:`、`update:install`…）
+- 当前 **173 个 handler + 35 个 listener（208 个通道）**，全部集中注册，前缀按域命名（`player:`、`storage:`、`local-music:`、`update:install`…）
 - 两道闸：
   1. `registry.ts` 校验 `event.senderFrame.url` 必须属于应用自身页面（`IPC_FORBIDDEN`）
   2. `preload` 的 `RENDERER_CHANNEL_ALLOWLIST` 只放行明确列出的通道
