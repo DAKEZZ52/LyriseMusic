@@ -65,6 +65,9 @@ export function setFeatures(patch, by = 'admin') {
       ...next[key],
       ...(typeof value.enabled === 'boolean' ? { enabled: value.enabled } : {}),
       ...(typeof value.message === 'string' ? { message: value.message.slice(0, 200) } : {}),
+      // 与 webroom 一致：记下是谁改的，管理后台会传管理员名进来
+      updatedAt: Date.now(),
+      updatedBy: by,
     };
   }
   cache = { ...cache, features: next };
