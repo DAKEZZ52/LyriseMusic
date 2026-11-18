@@ -4,50 +4,57 @@
         xmlns:mobile="http://www.baidu.com/schemas/sitemap-mobile/1.0">
   <url>
     <loc>https://dkyy.top/</loc>
-    <lastmod>2026-10-23</lastmod>
+    <lastmod>2026-11-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <mobile:mobile type="pc,mobile" />
     <image:image>
       <image:loc>https://dkyy.top/assets/img/room_list.webp</image:loc>
-      <image:title>DakeMusic 语聊房房间列表</image:title>
-      <image:caption>DakeMusic 语聊房：创建房间、查看房间列表并加入语音房。</image:caption>
+      <image:title>LyriseMusic 语聊房房间列表</image:title>
+      <image:caption>LyriseMusic 语聊房：创建房间、查看房间列表并加入语音房。</image:caption>
     </image:image>
     <image:image>
       <image:loc>https://dkyy.top/assets/img/home.webp</image:loc>
-      <image:title>DakeMusic 首页推荐</image:title>
-      <image:caption>DakeMusic 桌面音乐播放器首页：每日推荐、排行榜与风格推荐。</image:caption>
+      <image:title>LyriseMusic 首页推荐</image:title>
+      <image:caption>LyriseMusic 桌面音乐播放器首页：每日推荐、排行榜与风格推荐。</image:caption>
     </image:image>
     <image:image>
       <image:loc>https://dkyy.top/assets/img/discover.webp</image:loc>
-      <image:title>DakeMusic 探索发现</image:title>
-      <image:caption>DakeMusic 探索发现页：按场景浏览歌单、排行榜和新歌。</image:caption>
+      <image:title>LyriseMusic 探索发现</image:title>
+      <image:caption>LyriseMusic 探索发现页：按场景浏览歌单、排行榜和新歌。</image:caption>
     </image:image>
     <image:image>
       <image:loc>https://dkyy.top/assets/img/song_detail.webp</image:loc>
-      <image:title>DakeMusic 歌曲详情</image:title>
-      <image:caption>DakeMusic 歌曲详情页：音质、音效与榜单成就。</image:caption>
+      <image:title>LyriseMusic 歌曲详情</image:title>
+      <image:caption>LyriseMusic 歌曲详情页：音质、音效与榜单成就。</image:caption>
     </image:image>
     <image:image>
       <image:loc>https://dkyy.top/assets/img/lyric.webp</image:loc>
-      <image:title>DakeMusic 全屏歌词</image:title>
-      <image:caption>DakeMusic 全屏逐行歌词与写真模式。</image:caption>
+      <image:title>LyriseMusic 全屏歌词</image:title>
+      <image:caption>LyriseMusic 全屏逐行歌词与写真模式。</image:caption>
     </image:image>
     <image:image>
       <image:loc>https://dkyy.top/assets/img/downloads.webp</image:loc>
-      <image:title>DakeMusic 下载管理</image:title>
-      <image:caption>DakeMusic 下载管理与下载设置。</image:caption>
+      <image:title>LyriseMusic 下载管理</image:title>
+      <image:caption>LyriseMusic 下载管理与下载设置。</image:caption>
     </image:image>
     <image:image>
       <image:loc>https://dkyy.top/assets/img/settings.webp</image:loc>
-      <image:title>DakeMusic 偏好设置</image:title>
-      <image:caption>DakeMusic 偏好设置：主题、外观与窗口效果。</image:caption>
+      <image:title>LyriseMusic 偏好设置</image:title>
+      <image:caption>LyriseMusic 偏好设置：主题、外观与窗口效果。</image:caption>
     </image:image>
     <image:image>
       <image:loc>https://dkyy.top/assets/img/profile.webp</image:loc>
-      <image:title>DakeMusic 个人中心</image:title>
-      <image:caption>DakeMusic 个人中心：账号档案与每日权益。</image:caption>
+      <image:title>LyriseMusic 个人中心</image:title>
+      <image:caption>LyriseMusic 个人中心：账号档案与每日权益。</image:caption>
     </image:image>
+  </url>
+  <url>
+    <loc>https://dkyy.top/dl/</loc>
+    <lastmod>2026-11-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <mobile:mobile type="pc,mobile" />
   </url>
   <url>
     <loc>https://dkyy.top/webroom/</loc>
