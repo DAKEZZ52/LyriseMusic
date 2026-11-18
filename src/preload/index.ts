@@ -241,11 +241,13 @@ const toPlainIpcPayload = <T>(value: T): T => {
   ) as T;
 };
 
-// 渲染层允许直接调用的通道白名单。
-// 页面只能通过这里的通道访问主进程，未知通道一律丢弃并记录日志，
+// 渲染层允许主动调用的命令通道白名单（send / invoke）。
+// 页面只能通过这些通道访问主进程，未知通道一律丢弃并记录日志，
 // 避免页面被注入后拿到全部已注册能力。
 const RENDERER_CHANNEL_ALLOWLIST = new Set<string>([
   'window:zoom-set',
+  'window:zoom-get',
+  'window:frame-state',
   'thumbar:update-play-state',
   'window-background:get',
   'window-background:set',
@@ -263,6 +265,7 @@ const RENDERER_CHANNEL_ALLOWLIST = new Set<string>([
   'update-taskbar-cover-preview',
   'update-taskbar-progress',
   'update-devtools-enabled',
+  'update-disable-gpu-acceleration',
   'logging:update-settings',
   'window-toggle',
   'quit-app',
@@ -270,9 +273,29 @@ const RENDERER_CHANNEL_ALLOWLIST = new Set<string>([
   'window-background:diagnostics',
 ]);
 
+// 主进程推给渲染层的事件通道白名单（on / off）。
+// 订阅面单独收口：注入脚本即使发不出命令，也不该能订阅任意事件通道被动窃听。
+// 类型化 API 里的监听不走这张表——那是 preload 自己的代码，不是页面能直接拿到的入口。
+const RENDERER_EVENT_ALLOWLIST = new Set<string>([
+  'app:open-audio-files',
+  'desktop-lyric:command',
+  'update-check-result',
+  'update-release-notes',
+  'window-background:changed',
+  'window:frame-state-changed',
+  'window:native-pointerdown',
+  'window:zoom-changed',
+]);
+
 const isChannelAllowed = (channel: string): boolean => {
   if (RENDERER_CHANNEL_ALLOWLIST.has(channel)) return true;
   console.warn('[preload] blocked IPC channel:', channel);
+  return false;
+};
+
+const isEventAllowed = (channel: string): boolean => {
+  if (RENDERER_EVENT_ALLOWLIST.has(channel)) return true;
+  console.warn('[preload] blocked IPC event:', channel);
   return false;
 };
 const invokeWithPlainPayload = <T = unknown>(channel: string, ...args: unknown[]) =>
@@ -298,10 +321,12 @@ contextBridge.exposeInMainWorld('electron', {
       return invokeWithPlainPayload(channel, ...args);
     },
     on: (channel: string, func: (...args: any[]) => void) => {
+      if (!isEventAllowed(channel)) return;
       const wrapped = getWrappedListener(channel, func);
       ipcRenderer.on(channel, wrapped);
     },
     off: (channel: string, func: (...args: any[]) => void) => {
+      if (!isEventAllowed(channel)) return;
       const wrapped = ipcListenerMap.get(channel)?.get(func);
       if (wrapped) {
         ipcRenderer.removeListener(channel, wrapped);

@@ -34,11 +34,15 @@
 - 当前 **173 个 handler + 35 个 listener（208 个通道）**，全部集中注册，前缀按域命名（`player:`、`storage:`、`local-music:`、`update:install`…）
 - 两道闸：
   1. `registry.ts` 校验 `event.senderFrame.url` 必须属于应用自身页面（`IPC_FORBIDDEN`）
-  2. `preload` 的 `RENDERER_CHANNEL_ALLOWLIST` 只放行明确列出的通道
+  2. `preload` 的两张通道表，按方向分开收口：
+     - `RENDERER_CHANNEL_ALLOWLIST` —— 页面能**主动发起**的命令（`send` / `invoke`）
+     - `RENDERER_EVENT_ALLOWLIST` —— 页面能**订阅**的事件（`on` / `off`）
+     表里没有的通道一律丢弃并打 `[preload] blocked IPC ...` 日志。注入脚本即使发不出命令，也订阅不到表外事件做被动窃听。
 - 加新通道的标准做法：
   1. main 里 `ipcRegistry.registerHandler('域:动作', ...)`
   2. preload 在对应命名空间加类型化方法（不要往 allowlist 里塞）
   3. `src/renderer/electron.d.ts` 补签名
+  4. 只有渲染层确实要裸调时，才把通道加进对应那张表（命令进 `RENDERER_CHANNEL_ALLOWLIST`，事件进 `RENDERER_EVENT_ALLOWLIST`）；`tests/preload-ipc-allowlist.test.mjs` 会扫出漏加的通道
 
 ## 数据存在哪
 

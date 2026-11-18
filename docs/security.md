@@ -48,6 +48,16 @@
 - 拒绝：任意 https 页面、`data:`/`blob:` 页面、其它目录的 `file://`
 - 被拒时记录 `[IPC] 已拒绝不可信来源的调用`，并抛 `IPC_FORBIDDEN:<channel>`
 
+### 6.1 preload 通道闸（2026-11-17 补齐订阅面）
+
+- `src/preload/index.ts` 两张表按方向收口，四个方法全挂闸：
+  - `RENDERER_CHANNEL_ALLOWLIST` → `ipcRenderer.send` / `invoke`（页面能主动发起的命令）
+  - `RENDERER_EVENT_ALLOWLIST` → `ipcRenderer.on` / `off`（页面能订阅的事件）
+- 表外通道直接丢弃并打 `[preload] blocked IPC channel/event` 日志
+- 补齐的意义：只挡命令不挡订阅时，注入脚本虽然发起不了调用，但仍能订阅 `update-*`、`desktop-lyric:command` 这类事件通道做被动窃听
+- 顺带修掉三处被旧表漏掉、一直静默失效的通道：`window:zoom-get`（缩放档位首次读不到）、`window:frame-state`（窗口描边初始态读不到）、`update-disable-gpu-acceleration`（GPU 加速开关不生效）
+- 回归保护：`tests/preload-ipc-allowlist.test.mjs` 静态比对渲染层的裸 IPC 调用与两张表
+
 ### 7. 更新包完整性（不依赖付费证书）
 
 - `scripts/sign-update-manifest.mjs`：发布前用打包私钥给 `latest.yml` / `beta.yml` 生成 `.sig`
