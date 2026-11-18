@@ -85,3 +85,10 @@ screenshots/
 .keys/
 .nsis-build-tmp/
 desktop.ini
+
+# room-server 本地调试数据（start-dev.ps1 生成，不进仓库）
+room-server/.dev-data/
+room-server/*.db
+room-server/*.db-shm
+room-server/*.db-wal
+room-server/rooms.json
