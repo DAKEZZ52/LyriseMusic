@@ -107,3 +107,22 @@ Include whether Acrylic works and the visible result. Rebuild the platform addon
 for native DWM/Accent readback; an older binary produces a partial report with
 `nativeDiagnosticsAvailable: false`. API acceptance, readback and visible output
 are distinct observations and must not be reported as interchangeable test results.
+
+## Release distribution
+
+Releases are built and published from the maintainer's machine only:
+
+```powershell
+pnpm build
+.\scripts\publish-all.ps1
+```
+
+`publish-all.ps1` publishes the same `release/` artifacts to two channels — Tencent Cloud
+(`dkyy.top/dl/`, the primary update feed) and the GitHub Release (fallback) — then compares the
+`sha512` in both `latest.yml` files and fails if they differ.
+
+`.github/workflows/build.yml` no longer builds or publishes on tag push; it only runs a manual
+`workflow_dispatch` build to verify the tree still compiles. Two independent builds produce two
+different binaries under one version number, and the update manifest has to be signed with
+`.keys/build-ed25519.pem`, which never leaves the maintainer's machine.
+
