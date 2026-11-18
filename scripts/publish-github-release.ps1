@@ -7,7 +7,7 @@ try {
   $token = (Get-Content '.keys\github_token' -Raw).Trim()
   $pkg = Get-Content package.json -Raw -Encoding UTF8 | ConvertFrom-Json
   $version = $pkg.version
-  $tag = "$version"
+  $tag = "v$version"
   $repo = 'DAKEZZ52/LyriseMusic'
 
   $files = @(
@@ -45,8 +45,10 @@ try {
       }
     }
     # 覆盖时同步正文与状态
+    # PowerShell 5.1 的 Invoke-RestMethod 会把字符串 body 按系统 ANSI 编码发出，
+    # 中文更新日志到 GitHub 就变成问号。必须显式转成 UTF-8 字节再传。
     $patch = @{ body = $body; draft = $true; name = "LyriseMusic $version" } | ConvertTo-Json -Compress
-    Invoke-RestMethod -Method Patch -Uri "https://api.github.com/repos/$repo/releases/$releaseId" -Headers $headers -Body $patch -ContentType 'application/json' -TimeoutSec 60 | Out-Null
+    Invoke-RestMethod -Method Patch -Uri "https://api.github.com/repos/$repo/releases/$releaseId" -Headers $headers -Body ([System.Text.Encoding]::UTF8.GetBytes($patch)) -ContentType 'application/json; charset=utf-8' -TimeoutSec 60 | Out-Null
   } else {
     $payload = @{
       tag_name         = $tag
@@ -56,7 +58,7 @@ try {
       draft            = $true
       prerelease       = $false
     } | ConvertTo-Json -Compress
-    $created = Invoke-RestMethod -Method Post -Uri "https://api.github.com/repos/$repo/releases" -Headers $headers -Body $payload -ContentType 'application/json' -TimeoutSec 60
+    $created = Invoke-RestMethod -Method Post -Uri "https://api.github.com/repos/$repo/releases" -Headers $headers -Body ([System.Text.Encoding]::UTF8.GetBytes($payload)) -ContentType 'application/json; charset=utf-8' -TimeoutSec 60
     $releaseId = $created.id
     Write-Host "    已创建 draft release id=$releaseId"
   }

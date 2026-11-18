@@ -46,7 +46,7 @@ try {
   $localSha = [regex]::Match((Get-Content 'release\latest.yml' -Raw), '(?m)^sha512:\s*(\S+)').Groups[1].Value
   if (-not $localSha) { throw '本地 latest.yml 里没找到 sha512' }
 
-  $ghUrl = "https://github.com/$repo/releases/download/$version/latest.yml"
+  $ghUrl = "https://github.com/$repo/releases/download/v$version/latest.yml"
   $remoteSha = ''
   for ($i = 1; $i -le 6; $i++) {
     $gh = (& curl.exe -sSL --max-time 30 $ghUrl) -join "`n"
