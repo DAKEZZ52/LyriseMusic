@@ -1187,23 +1187,21 @@ audio {
 }
 
 .side {
-  /* 三张卡并排；窄屏在下面降级为 2 列 / 1 列 */
+  /* 三张卡并排；只有窗口真的很窄时才落成一列 */
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
-  align-items: start;
+  align-items: stretch;
 }
-@media (max-width: 1280px) {
-  .side {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-@media (max-width: 900px) {
+@media (max-width: 880px) {
   .side {
     grid-template-columns: minmax(0, 1fr);
   }
 }
 .card {
+  /* 竖向 flex：三张卡等高后，状态卡的操作按钮靠 margin-top:auto 贴到底部对齐 */
+  display: flex;
+  flex-direction: column;
   background: var(--content-panel-bg);
   border: 1px solid var(--content-panel-border);
   backdrop-filter: blur(var(--surface-blur-md));
@@ -1377,7 +1375,9 @@ audio {
 }
 
 .actions {
-  margin-top: 12px;
+  /* auto 而非固定值：卡片被拉成等高时，按钮始终贴在卡片底部 */
+  margin-top: auto;
+  padding-top: 12px;
 }
 .primary,
 .danger {
