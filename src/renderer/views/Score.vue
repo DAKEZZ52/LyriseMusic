@@ -1000,11 +1000,17 @@ onUnmounted(() => {
   align-items: center;
   gap: 12px;
   margin-bottom: 8px;
+  min-width: 0;
 }
 .sheet-title {
   font-size: 15px;
   font-weight: 600;
   color: var(--text-main);
+  /* 标题过长时自己省略，别把右边的操作按钮挤成竖排 */
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 .sheet-sub {
   margin-left: 8px;
@@ -1090,7 +1096,14 @@ audio {
 .sheet-actions {
   margin-left: auto;
   display: flex;
+  align-items: center;
   gap: 8px;
+  /* 操作区不参与收缩，按钮文字也不换行，避免「选项」被压成上下两行 */
+  flex-shrink: 0;
+}
+.sheet-actions button {
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .ghost {
   border: 1px solid var(--border-light);
