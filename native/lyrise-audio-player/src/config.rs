@@ -1,5 +1,4 @@
 use crate::device::normalize_device_name;
-use crate::events::SpectrumOptions;
 use crate::shared::AudioSampleFormat;
 use crate::stream::{self, StreamOptions};
 use ffmpeg_audio::PacketCacheOptions;
@@ -864,52 +863,3 @@ mod tests {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct SpectrumConfig {
-    pub bands: usize,
-    pub fps: u32,
-    pub min_frequency: f64,
-    pub max_frequency: f64,
-    pub smoothing: f64,
-    pub include_waveform: bool,
-}
-
-impl Default for SpectrumConfig {
-    fn default() -> Self {
-        Self {
-            bands: 64,
-            fps: 30,
-            min_frequency: 40.0,
-            max_frequency: 16_000.0,
-            smoothing: 0.6,
-            include_waveform: false,
-        }
-    }
-}
-
-impl SpectrumConfig {
-    pub fn from_options(options: Option<SpectrumOptions>) -> Self {
-        let mut config = Self::default();
-        if let Some(options) = options {
-            if let Some(value) = options.bands {
-                config.bands = (value as usize).clamp(8, 256);
-            }
-            if let Some(value) = options.fps {
-                config.fps = value.clamp(1, 120);
-            }
-            if let Some(value) = options.min_frequency {
-                config.min_frequency = value.clamp(1.0, 20_000.0);
-            }
-            if let Some(value) = options.max_frequency {
-                config.max_frequency = value.clamp(config.min_frequency + 1.0, 24_000.0);
-            }
-            if let Some(value) = options.smoothing {
-                config.smoothing = value.clamp(0.0, 0.98);
-            }
-            if let Some(value) = options.include_waveform {
-                config.include_waveform = value;
-            }
-        }
-        config
-    }
-}

@@ -1004,10 +1004,6 @@ fn process_output_signal(
         }
     }
     shared.store_applied_output_gain(target_gain);
-    shared.set_spectrum_sample_rate(sample_rate);
-    if let Ok(mut ring) = shared.spectrum_ring.try_lock() {
-        ring.push_interleaved(output, channels);
-    }
 }
 
 fn can_copy_graph_to_device(

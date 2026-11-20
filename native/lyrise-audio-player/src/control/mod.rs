@@ -7,7 +7,6 @@ mod output;
 mod output_lifecycle;
 mod provider;
 mod seek;
-mod spectrum;
 pub(crate) mod transition;
 
 fn ensure_finite_parameter(value: f64, name: &str) -> napi::Result<()> {
@@ -43,9 +42,6 @@ pub(crate) use seek::{
     attach_restarted_decoder, mark_seek_plan_failed, open_decoder_at_position, SeekPlan,
 };
 pub use seek::{seek, SeekTask};
-pub use spectrum::{
-    configure_spectrum, get_spectrum_snapshot, get_spectrum_status, GetSpectrumSnapshotTask,
-};
 pub(crate) use transition::{
     armed_transition_from_prepared, prepare_transition_audio, PreparationCancellation,
     PreparedTransitionInputs,

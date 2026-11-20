@@ -1,7 +1,6 @@
 use crate::audio_graph::AudioFilterGraph;
 use crate::dsp::provider::ProviderDescriptor;
 use crate::dsp::DspSettings;
-use crate::spectrum::SampleRing;
 mod ao_state;
 mod clock;
 mod decoded_queue;
@@ -68,7 +67,6 @@ pub struct SharedAudio {
     decoded_queue_capacity_frames: usize,
     requested_output_buffer_secs: f64,
     ao_state: AoBufferingState,
-    pub spectrum_ring: Mutex<SampleRing>,
     dsp_settings: Mutex<DspSettings>,
     staged_filter_graph: Mutex<Option<(u64, AudioFilterGraph, bool)>>,
     provider_descriptor: Mutex<Option<ProviderDescriptor>>,
@@ -121,7 +119,6 @@ pub struct SharedAudio {
     pitch_bits: AtomicU32,
     source_sample_format: AtomicU32,
     preferred_output_sample_format: AtomicU32,
-    spectrum_sample_rate: AtomicU32,
     interrupt: Mutex<Option<Arc<AtomicBool>>>,
     /// Interrupt flag of a second decoder that is active at the same time as the primary
     /// one (the incoming deck while a song transition renders).
@@ -177,7 +174,6 @@ impl SharedAudio {
             decoded_queue_capacity_frames,
             requested_output_buffer_secs: buffer_secs.clamp(0.0, 10.0),
             ao_state: AoBufferingState::new(),
-            spectrum_ring: Mutex::new(SampleRing::new(mix_sample_rate as usize)),
             dsp_settings: Mutex::new(dsp_settings.clone()),
             staged_filter_graph: Mutex::new(None),
             provider_descriptor: Mutex::new(None),
@@ -230,7 +226,6 @@ impl SharedAudio {
             pitch_bits: AtomicU32::new(2.0f32.powf(dsp_settings.pitch_semitones / 12.0).to_bits()),
             source_sample_format: AtomicU32::new(AudioSampleFormat::Unknown as u32),
             preferred_output_sample_format: AtomicU32::new(AudioSampleFormat::Unknown as u32),
-            spectrum_sample_rate: AtomicU32::new(mix_sample_rate),
             interrupt: Mutex::new(None),
             secondary_interrupt: Mutex::new(None),
             control_signal_tx: OnceLock::new(),
@@ -372,15 +367,6 @@ impl SharedAudio {
         } else {
             preferred
         }
-    }
-
-    pub fn set_spectrum_sample_rate(&self, sample_rate: u32) {
-        self.spectrum_sample_rate
-            .store(sample_rate.max(1), Ordering::Release);
-    }
-
-    pub fn spectrum_sample_rate(&self) -> u32 {
-        self.spectrum_sample_rate.load(Ordering::Acquire).max(1)
     }
 
     pub fn dsp_settings(&self) -> DspSettings {
@@ -1060,9 +1046,6 @@ impl SharedAudio {
                         output_position_secs: info.start_position_secs,
                     });
                 }
-                if let Ok(mut ring) = self.spectrum_ring.try_lock() {
-                    ring.clear();
-                }
                 self.reset_output_buffering_state();
                 if let Some(pending) = pending_track_switch.as_mut() {
                     **pending = Some(info);
@@ -1327,9 +1310,6 @@ impl SharedAudio {
         self.set_position_secs(position_secs);
         self.set_speed(dsp_settings.speed);
         self.set_pitch(2.0f32.powf(dsp_settings.pitch_semitones / 12.0));
-        if let Ok(mut ring) = self.spectrum_ring.lock() {
-            *ring = SampleRing::new(self.mix_format.sample_rate as usize);
-        }
         self.update_dsp_settings(dsp_settings);
         self.output_queue_changed.notify_all();
         self.decoded_queue_changed.notify_all();

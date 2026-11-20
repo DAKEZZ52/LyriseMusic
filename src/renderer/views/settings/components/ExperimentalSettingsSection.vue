@@ -21,12 +21,6 @@ import { sectionTitles } from '../constants';
 
 const settingStore = useSettingStore();
 
-const spectrumStyleOptions = [
-  { value: 'bars', label: '柱状' },
-  { value: 'dots', label: '点阵' },
-  { value: 'wave', label: '波形' },
-  { value: 'mirror', label: '对称' },
-];
 const userStore = useUserStore();
 const deviceStore = useDeviceStore();
 const toastStore = useToastStore();
@@ -401,47 +395,6 @@ const confirmResetDeviceIdentity = async () => {
         <Button variant="danger" size="sm" @click="confirmResetDeviceIdentity"> 确认重置 </Button>
       </template>
     </Dialog>
-    <div class="settings-divider"></div>
-    <div class="settings-item">
-      <div class="space-y-1">
-        <h3 class="font-semibold">音频频谱条</h3>
-        <p class="text-sm text-text-secondary">
-          在歌词页底部显示随音乐跳动的频谱（实验性，占用少量 CPU）
-        </p>
-      </div>
-      <Switch v-model="settingStore.spectrumEnabled" />
-    </div>
-    <div v-if="settingStore.spectrumEnabled" class="settings-divider"></div>
-    <div v-if="settingStore.spectrumEnabled" class="settings-item">
-      <div class="space-y-1">
-        <h3 class="font-semibold">频谱样式</h3>
-        <p class="text-sm text-text-secondary">柱状 / 点阵 / 波形 / 对称，随时可以换</p>
-      </div>
-      <Select
-        class="w-40 shrink-0"
-        :model-value="settingStore.spectrumStyle"
-        :options="spectrumStyleOptions"
-        @update:model-value="
-          settingStore.spectrumStyle = $event as typeof settingStore.spectrumStyle
-        "
-      />
-    </div>
-    <div v-if="settingStore.spectrumEnabled" class="settings-divider"></div>
-    <div v-if="settingStore.spectrumEnabled" class="settings-item">
-      <div class="space-y-1">
-        <h3 class="font-semibold">频谱透明度</h3>
-        <p class="text-sm text-text-secondary">越低越不抢歌词，100% 最明显</p>
-      </div>
-      <Slider
-        class="w-48"
-        :model-value="settingStore.spectrumOpacity"
-        :min="20"
-        :max="100"
-        :step="5"
-        show-value
-        @update:model-value="settingStore.spectrumOpacity = $event"
-      />
-    </div>
   </SettingsSectionShell>
 </template>
 

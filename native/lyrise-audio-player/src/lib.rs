@@ -12,7 +12,6 @@ mod output;
 mod shared;
 #[cfg(test)]
 mod source_change_tests;
-mod spectrum;
 mod stream;
 mod tempo;
 mod transition;
@@ -29,19 +28,18 @@ use control::{
     PreparedTransitionInputs, SeekPlan,
 };
 pub use control::{
-    cancel_fade, configure_spectrum, fade, get_audio_devices, get_audio_graph,
-    get_spectrum_snapshot, get_spectrum_status, get_transition_diagnostics,
+    cancel_fade, fade, get_audio_devices, get_audio_graph, get_transition_diagnostics,
     get_transition_settings, inspect_dsp_provider, pause_with_fade, play_with_fade,
     set_audio_effect, set_audio_graph_parameter, set_audio_graph_plan, set_audio_output,
     set_equalizer, set_http_proxies, set_http_proxy, set_network_timeout, set_normalization_gain,
     set_pause_on_device_disconnect, set_speed, set_stall_timeout, set_transition_settings,
-    GetAudioDevicesTask, GetSpectrumSnapshotTask, SetAudioEffectTask, SetAudioGraphParameterTask,
+    GetAudioDevicesTask, SetAudioEffectTask, SetAudioGraphParameterTask,
     SetAudioGraphPlanTask, SetAudioOutputTask, SetEqualizerTask, SetNormalizationGainTask,
     SetSpeedTask, TransitionSettingsOptions, TransitionSettingsSnapshot,
 };
 pub use control::{seek, SeekTask};
 
-use crate::config::{GaplessAudioPolicy, PlayerConfig, PlayerConfigOptions, SpectrumConfig};
+use crate::config::{GaplessAudioPolicy, PlayerConfig, PlayerConfigOptions};
 use crate::decoder::{
     audio_stream_ordinal_from_track_id, list_tracks_for_url, open_decoder,
     open_decoder_with_interrupt,
@@ -52,10 +50,7 @@ use crate::dispatcher::{
     start_event_dispatcher, stop_core_dispatcher, stop_event_dispatcher, EventCallback,
 };
 use crate::dsp::{prepare_spatial_effect, DspSettings, EQ_BAND_COUNT};
-use crate::events::{
-    AudioDevice, PlayerEvent, PlayerState, SpectrumFrame, SpectrumOptions, SpectrumStatus,
-    TrackInfo,
-};
+use crate::events::{AudioDevice, PlayerEvent, PlayerState, TrackInfo};
 use crate::shared::{MixFormat, PlaybackSession, PlaybackSignal, SharedAudio, TrackSwitchInfo};
 use audio_graph::AudioGraphSnapshot;
 use napi::bindgen_prelude::AsyncTask;
@@ -146,13 +141,10 @@ struct PlayerRuntime {
     current_seq: u64,
     latest_load_seq: u64,
     dsp_settings: DspSettings,
-    spectrum_config: SpectrumConfig,
-    spectrum_analyzer: spectrum::SpectrumAnalyzer,
     device_watcher: Option<device::DeviceWatcher>,
     loop_file: bool,
     audio_graph: AudioGraphSnapshot,
     audio_graph_revision: u64,
-    spectrum_signal_logged: bool,
     spatial_request_seq: u64,
     idle_output_release_seq: u64,
     spatial_file_path: Option<String>,
@@ -286,7 +278,6 @@ enum LoadPlan {
 
 impl PlayerRuntime {
     fn new(config: PlayerConfig) -> Self {
-        let spectrum_config = SpectrumConfig::default();
         Self {
             config,
             session: None,
@@ -302,13 +293,10 @@ impl PlayerRuntime {
             current_seq: 0,
             latest_load_seq: 0,
             dsp_settings: DspSettings::default(),
-            spectrum_analyzer: spectrum::SpectrumAnalyzer::new(spectrum_config.clone()),
-            spectrum_config,
             device_watcher: None,
             loop_file: false,
             audio_graph: AudioGraphSnapshot::default(),
             audio_graph_revision: 0,
-            spectrum_signal_logged: false,
             spatial_request_seq: 0,
             idle_output_release_seq: 0,
             spatial_file_path: None,

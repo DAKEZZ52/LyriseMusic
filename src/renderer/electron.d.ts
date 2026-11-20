@@ -58,11 +58,6 @@ import type {
   ImportImpulseResponseResult,
   SpatialAudioEffectEntry,
 } from '../shared/audio';
-import type {
-  AudioSpectrumFrame,
-  AudioSpectrumOptions,
-  AudioSpectrumStatus,
-} from '../shared/audioSpectrum';
 import type { LogSettings } from '../shared/logging';
 import type { NetworkSettingsState, NetworkSettingsUpdateRequest } from '../shared/network';
 import type {
@@ -430,15 +425,6 @@ export interface IElectronAPI {
     export: (request: SettingsBackupExportRequest) => Promise<SettingsBackupExportResult>;
     inspect: () => Promise<SettingsBackupInspectResult>;
     import: (request: SettingsBackupImportRequest) => Promise<SettingsBackupImportResult>;
-  };
-  audioSpectrum?: {
-    getStatus: () => Promise<AudioSpectrumStatus>;
-    getSnapshot: () => Promise<AudioSpectrumFrame | null>;
-    subscribe: (
-      options: AudioSpectrumOptions,
-      func: (frame: AudioSpectrumFrame) => void,
-      metadata?: { pluginId?: string },
-    ) => () => void;
   };
   recognize: {
     listInputDevices: () => Promise<RecognizeInputDevice[]>;

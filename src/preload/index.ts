@@ -61,12 +61,6 @@ import type {
   ImportImpulseResponseResult,
   SpatialAudioEffectEntry,
 } from '../shared/audio';
-import type {
-  AudioSpectrumFrame,
-  AudioSpectrumOptions,
-  AudioSpectrumStatus,
-  AudioSpectrumSubscribeResult,
-} from '../shared/audioSpectrum';
 import type { LogSettings } from '../shared/logging';
 import type { NetworkSettingsState, NetworkSettingsUpdateRequest } from '../shared/network';
 import type {
@@ -300,8 +294,6 @@ const isEventAllowed = (channel: string): boolean => {
 };
 const invokeWithPlainPayload = <T = unknown>(channel: string, ...args: unknown[]) =>
   ipcRenderer.invoke(channel, ...args.map(toPlainIpcPayload)) as Promise<T>;
-
-let audioSpectrumSubscriptionSeq = 0;
 
 const sendWithPlainPayload = (channel: string, ...args: unknown[]) => {
   ipcRenderer.send(channel, ...args.map(toPlainIpcPayload));
@@ -1119,40 +1111,6 @@ contextBridge.exposeInMainWorld('electron', {
         func(payload);
       ipcRenderer.on('player:audio-graph-change', listener);
       return () => ipcRenderer.removeListener('player:audio-graph-change', listener);
-    },
-  },
-  audioSpectrum: {
-    getStatus: () =>
-      ipcRenderer.invoke('audio-spectrum:get-status') as Promise<AudioSpectrumStatus>,
-    getSnapshot: () =>
-      ipcRenderer.invoke('audio-spectrum:get-snapshot') as Promise<AudioSpectrumFrame | null>,
-    subscribe: (
-      options: AudioSpectrumOptions,
-      func: (frame: AudioSpectrumFrame) => void,
-      metadata?: { pluginId?: string },
-    ) => {
-      const subscriptionId = `audio-spectrum-${Date.now()}-${++audioSpectrumSubscriptionSeq}`;
-      const listener = (
-        _event: Electron.IpcRendererEvent,
-        frameSubscriptionId: string,
-        frame: AudioSpectrumFrame,
-      ) => {
-        if (frameSubscriptionId === subscriptionId) func(frame);
-      };
-      ipcRenderer.on('audio-spectrum:frame', listener);
-      void invokeWithPlainPayload<AudioSpectrumSubscribeResult>('audio-spectrum:subscribe', {
-        subscriptionId,
-        pluginId: metadata?.pluginId,
-        options,
-      }).catch(() => {
-        ipcRenderer.removeListener('audio-spectrum:frame', listener);
-      });
-      return () => {
-        ipcRenderer.removeListener('audio-spectrum:frame', listener);
-        void invokeWithPlainPayload<AudioSpectrumStatus>('audio-spectrum:unsubscribe', {
-          subscriptionId,
-        }).catch(() => {});
-      };
     },
   },
   recognize: {

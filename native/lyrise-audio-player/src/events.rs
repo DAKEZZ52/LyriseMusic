@@ -32,35 +32,6 @@ pub struct PlayerState {
 
 #[napi(object)]
 #[derive(Clone, Debug)]
-pub struct SpectrumFrame {
-    pub bins: Vec<f64>,
-    pub waveform: Option<Vec<f64>>,
-    pub peak: f64,
-    pub rms: f64,
-    pub timestamp: f64,
-}
-
-#[napi(object)]
-#[derive(Clone, Debug)]
-pub struct SpectrumStatus {
-    pub available: bool,
-    pub running: bool,
-    pub reason: Option<String>,
-}
-
-#[napi(object)]
-#[derive(Clone, Debug)]
-pub struct SpectrumOptions {
-    pub bands: Option<u32>,
-    pub fps: Option<u32>,
-    pub min_frequency: Option<f64>,
-    pub max_frequency: Option<f64>,
-    pub smoothing: Option<f64>,
-    pub include_waveform: Option<bool>,
-}
-
-#[napi(object)]
-#[derive(Clone, Debug)]
 pub struct PlayerEvent {
     pub event: String,
     pub event_id: Option<f64>,

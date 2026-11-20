@@ -38,10 +38,6 @@ export const WHATS_NEW_RELEASES: WhatsNewRelease[] = [
         desc: '播放队列里用分隔线标出当前曲之后的部分，一眼看清接下来放什么。',
       },
       {
-        title: 'OBS 浮层频谱背景',
-        desc: '浏览器源地址加 ?spectrum=1，画面底部会随音乐跳动。',
-      },
-      {
         title: '音量条悬停气泡',
         desc: '鼠标移到音量滑杆上，直接显示目标音量数值。',
       },

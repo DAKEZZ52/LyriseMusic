@@ -372,9 +372,6 @@ interface PlayerAddon {
   setNetworkTimeout(seconds: number): void;
   setHttpProxy(proxy: string): void;
   setHttpProxies(proxies: string[]): void;
-  configureSpectrum(options?: unknown): { available: boolean; running: boolean; reason?: string };
-  getSpectrumStatus(): { available: boolean; running: boolean; reason?: string };
-  getSpectrumSnapshot(): Promise<unknown>;
 }
 
 export type PlayerTransitionMode = 'none' | 'gapless' | 'fade' | 'automix-basic' | 'automix-pro';
@@ -813,18 +810,6 @@ export class PlayerController extends EventEmitter {
     this.pendingLoadSeq = null;
     this.activeTrackSeq = seq;
     this.activeGeneration = 0;
-  }
-
-  configureSpectrum(options?: unknown) {
-    return this.getAddonOrThrow().configureSpectrum(options);
-  }
-
-  getSpectrumStatus() {
-    return this.getAddonOrThrow().getSpectrumStatus();
-  }
-
-  getSpectrumSnapshot() {
-    return this.getAddonOrThrow().getSpectrumSnapshot();
   }
 
   private enqueue<T>(operation: () => Promise<T> | T): Promise<T> {

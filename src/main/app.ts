@@ -15,7 +15,6 @@ import {
   cleanupDesktopLyric,
 } from './desktopLyric';
 import { initPlayer, destroyPlayer } from './player';
-import { registerAudioSpectrumIpc, unregisterAudioSpectrumIpc } from './audioSpectrum';
 import { initMediaControls, destroyMediaControls } from './mediaControls';
 import { destroyAudioCapture } from './audioCapture';
 import { cleanupMiniPlayer } from './miniPlayer';
@@ -165,9 +164,6 @@ if (!gotTheLock) {
 
     // --- Loading 阶段：在窗口创建前完成核心服务初始化 ---
 
-    // 注册频谱 IPC（渲染进程启动后立即可用，且拥有独立捕获生命周期）
-    registerAudioSpectrumIpc(() => playerRef.current);
-
     // 并行初始化 API 服务器和播放引擎
     const [, playerInstance] = await Promise.all([
       initApiServer().catch((err) => {
@@ -287,7 +283,6 @@ if (!gotTheLock) {
       log.info('[Main] before-quit: cleaning up native resources');
       try {
         globalShortcut.unregisterAll();
-        unregisterAudioSpectrumIpc();
         // 清理桌面歌词模块的事件监听器和定时器
         cleanupDesktopLyric();
         // 清理 mini 播放器模块的事件监听器和定时器

@@ -111,12 +111,6 @@ export const useSettingStore = defineStore('setting', {
   state: () => ({
     theme: 'system' as ThemeMode,
     /** OBS 浏览器源：开启后本地起一个只监听 127.0.0.1 的浮层服务 */
-    /** 实验性：歌词页音频频谱条 */
-    spectrumEnabled: false,
-    /** 频谱样式：bars / dots / wave / mirror */
-    spectrumStyle: 'bars' as 'bars' | 'dots' | 'wave' | 'mirror',
-    /** 频谱透明度 20–100（%） */
-    spectrumOpacity: 55,
     obsOverlayEnabled: false,
     obsOverlayPort: 37650,
     floatingSurfaceFrosted: false,
