@@ -1215,7 +1215,8 @@ audio {
 .seg {
   display: flex;
   gap: 4px;
-  background: var(--control-bg, #f2f2f5);
+  /* 卡片本身只有 36%，控件再用满白会跳出来；这里按面板底色提一档做层次 */
+  background: color-mix(in srgb, var(--surface-card-base) 42%, transparent);
   border-radius: 9px;
   padding: 3px;
 }
@@ -1230,7 +1231,7 @@ audio {
   cursor: pointer;
 }
 .seg button.on {
-  background: var(--surface-card, #fff);
+  background: color-mix(in srgb, var(--surface-card-base) 60%, transparent);
   color: var(--text-main);
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
 }
@@ -1296,9 +1297,9 @@ audio {
 }
 .text-input {
   width: 100%;
-  border: 1px solid var(--border-light);
+  border: 1px solid color-mix(in srgb, var(--text-main) 10%, transparent);
   border-radius: 8px;
-  background: var(--control-bg, #fff);
+  background: color-mix(in srgb, var(--surface-card-base) 45%, transparent);
   color: var(--text-main);
   padding: 6px 8px;
   font-size: 12px;
