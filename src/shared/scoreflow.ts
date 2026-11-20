@@ -165,6 +165,11 @@ export interface ScoreOptions {
   meter?: 3 | 4;
   /** 歌词模型：tiny/base/small/medium。 */
   whisper?: string;
+  /**
+   * 推理设备。不传时按引擎探测结果自动选（有 CUDA 用 cuda，否则 cpu）。
+   * 分离人声与歌词识别各占一段 GPU，串行执行，6GB 显存够用。
+   */
+  device?: 'cpu' | 'cuda';
 }
 
 /** 扒谱进度事件。 */
@@ -188,6 +193,11 @@ export interface ScoreEngineStatus {
   version: string;
   /** 不可用时的原因。 */
   reason?: string;
+  /**
+   * 引擎环境里 CUDA 是否可用：true 时分离与歌词会跑在 GPU 上。
+   * 只在开发形态（python 解释器）下探测，打包的 exe 一律按 false 处理。
+   */
+  cuda?: boolean;
 }
 
 /** 扒谱结果。 */

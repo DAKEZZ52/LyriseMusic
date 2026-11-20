@@ -124,6 +124,29 @@ function runOnce(
   });
 }
 
+/** CUDA 探测结果缓存：import torch 要两三秒，只探一次。 */
+let cudaCache: boolean | null = null;
+
+/**
+ * 引擎环境里 CUDA 能不能用。
+ * 打包成 exe 的形态没有 `python -c`，一律按 false 处理（沿用 CLI 默认的 cpu）。
+ */
+async function probeCuda(handle: EngineHandle): Promise<boolean> {
+  if (cudaCache !== null) return cudaCache;
+  if (handle.prefix.length === 0) {
+    cudaCache = false;
+    return false;
+  }
+  const out = await runOnce(
+    handle.runtime,
+    ['-c', 'import torch,sys; sys.stdout.write("1" if torch.cuda.is_available() else "0")'],
+    handle.root,
+    PROBE_TIMEOUT_MS,
+  );
+  cudaCache = out === '1';
+  return cudaCache;
+}
+
 /** 探测引擎是否可用（带版本号）。 */
 export async function probeEngine(): Promise<ScoreEngineStatus> {
   const handle = resolveEngine();
@@ -150,6 +173,7 @@ export async function probeEngine(): Promise<ScoreEngineStatus> {
     runtime: handle.runtime,
     root: handle.root,
     version: version || 'unknown',
+    cuda: await probeCuda(handle),
   };
 }
 
@@ -237,6 +261,13 @@ export async function transcribe(
   if (options.bpm) args.push('--bpm', String(options.bpm));
   if (options.meter) args.push('--meter', String(options.meter));
   if (options.whisper) args.push('--whisper', options.whisper);
+  // 设备：显式指定优先，否则按探测结果——有 CUDA 就把分离和歌词送上 GPU
+  if (options.device) {
+    args.push('--device', options.device);
+  } else {
+    const cuda = await probeCuda(handle);
+    args.push('--device', cuda ? 'cuda' : 'cpu');
+  }
 
   const doc = await new Promise<ScoreDoc>((resolve, reject) => {
     const child = spawn(handle.runtime, args, {

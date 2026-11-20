@@ -674,9 +674,15 @@ onUnmounted(() => {
         />
         <span v-if="engineChecking" class="engine-text">正在探测扒谱引擎…</span>
         <span v-else-if="engine?.available" class="engine-text">
-          引擎就绪 · {{ engine.version }} · 本机运行不走云端
+          引擎就绪 · {{ engine.version }} ·
+          <b :class="{ 'gpu-on': engine.cuda }">{{ engine.cuda ? 'GPU 加速' : 'CPU 推理' }}</b>
+          · 本机运行不走云端
         </span>
         <span v-else class="engine-text bad">{{ engine?.reason || '引擎不可用' }}</span>
+      </div>
+      <div v-if="engine?.available && !engine.cuda" class="engine-hint">
+        GPU 未启用：当前 PyTorch 是 CPU 版。装上 CUDA 版后这里会自动变成「GPU
+        加速」，分离与歌词识别会快数倍。
       </div>
 
       <div class="score-body">
@@ -933,6 +939,19 @@ onUnmounted(() => {
 }
 .engine-text.bad {
   color: var(--state-danger, #c2410c);
+}
+/* GPU 已启用时把这两个字挑出来，一眼能看出走的是显卡 */
+.engine-text b.gpu-on {
+  color: var(--state-success, #0f7b4f);
+  font-weight: 600;
+}
+.engine-hint {
+  margin-top: 6px;
+  padding-left: 15px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  opacity: 0.75;
 }
 
 .score-body {
