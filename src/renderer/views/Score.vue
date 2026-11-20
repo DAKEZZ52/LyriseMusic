@@ -684,6 +684,13 @@ onUnmounted(() => {
         </span>
         <span v-else class="engine-text bad">{{ engine?.reason || '引擎不可用' }}</span>
         <button class="ghost engine-option" @click="sideOpen = true">选项</button>
+        <button
+          class="primary engine-start"
+          :disabled="!engine?.available || busy"
+          @click="startTranscribe"
+        >
+          {{ busy ? '扒谱中…' : '开始扒谱' }}
+        </button>
       </div>
       <!-- 引擎不随安装包分发：用大白话写明体积，别让用户以为这是个坏掉的功能 -->
       <div v-if="!engine?.available && !engineChecking" class="engine-hint">
@@ -727,13 +734,6 @@ onUnmounted(() => {
               </div>
               <button v-if="doc" class="ghost" :class="{ on: editing }" @click="editing = !editing">
                 {{ editing ? '完成编辑' : '编辑' }}
-              </button>
-              <button
-                class="primary"
-                :disabled="!engine?.available || busy"
-                @click="startTranscribe"
-              >
-                {{ busy ? '扒谱中…' : '开始扒谱' }}
               </button>
             </div>
           </div>
@@ -947,8 +947,12 @@ onUnmounted(() => {
   font-size: 12px;
   color: var(--text-secondary);
 }
-/* 选项入口挂在状态行右端：不占谱面标题栏，也不和「开始扒谱」抢位置 */
+/* 「选项」与「开始扒谱」挂在状态行右端：谱面标题栏只留谱面相关操作 */
 .engine-row .engine-option {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.engine-row .engine-start {
   margin-left: auto;
   flex-shrink: 0;
   white-space: nowrap;
