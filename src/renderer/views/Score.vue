@@ -948,14 +948,30 @@ onUnmounted(() => {
   color: var(--text-secondary);
 }
 /* 「选项」与「开始扒谱」挂在状态行右端：谱面标题栏只留谱面相关操作 */
+.engine-row .dot {
+  flex-shrink: 0;
+}
+.engine-row .engine-text {
+  /* 状态文字占满中段，过长时省略，而不是被压成竖排 */
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .engine-row .engine-option {
   flex-shrink: 0;
   white-space: nowrap;
 }
 .engine-row .engine-start {
-  margin-left: auto;
+  margin-left: 8px;
+  /* .primary 是给侧栏全宽按钮写的 width:100%，这里要收回来 */
+  width: auto;
   flex-shrink: 0;
   white-space: nowrap;
+  padding: 5px 14px;
+  font-size: 12px;
+  border-radius: 8px;
 }
 .engine-row .dot {
   width: 7px;
