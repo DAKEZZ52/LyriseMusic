@@ -683,6 +683,7 @@ onUnmounted(() => {
           · 本机运行不走云端
         </span>
         <span v-else class="engine-text bad">{{ engine?.reason || '引擎不可用' }}</span>
+        <button class="ghost engine-option" @click="sideOpen = true">选项</button>
       </div>
       <!-- 引擎不随安装包分发：用大白话写明体积，别让用户以为这是个坏掉的功能 -->
       <div v-if="!engine?.available && !engineChecking" class="engine-hint">
@@ -727,7 +728,6 @@ onUnmounted(() => {
               <button v-if="doc" class="ghost" :class="{ on: editing }" @click="editing = !editing">
                 {{ editing ? '完成编辑' : '编辑' }}
               </button>
-              <button class="ghost" @click="sideOpen = true">选项</button>
               <button
                 class="primary"
                 :disabled="!engine?.available || busy"
@@ -946,6 +946,12 @@ onUnmounted(() => {
   gap: 8px;
   font-size: 12px;
   color: var(--text-secondary);
+}
+/* 选项入口挂在状态行右端：不占谱面标题栏，也不和「开始扒谱」抢位置 */
+.engine-row .engine-option {
+  margin-left: auto;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .engine-row .dot {
   width: 7px;
