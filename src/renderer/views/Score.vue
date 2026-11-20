@@ -650,7 +650,7 @@ onUnmounted(() => {
   <PageScrollContainer>
     <SliverHeader
       typeLabel="SCORE"
-      title="扒谱"
+      title="简谱"
       :coverUrl="fallbackCover"
       :hasDetails="true"
       :expandedHeight="150"

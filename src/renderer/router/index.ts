@@ -106,7 +106,7 @@ const routes: RouteRecordRaw[] = [
         path: 'score',
         name: 'score',
         component: () => import('@/views/Score.vue'),
-        meta: { title: '扒谱', keepAlive: true },
+        meta: { title: '简谱', keepAlive: true },
       },
       {
         path: 'purchased',

@@ -152,7 +152,7 @@ const registerBuiltinActions = () => {
   });
   builtinApi.register({
     id: 'score',
-    title: '扒谱',
+    title: '简谱（弹唱）',
     icon: iconMusic,
     defaultPlacement: 'more',
     order: 15,
