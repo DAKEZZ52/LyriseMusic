@@ -971,9 +971,13 @@ onUnmounted(() => {
 }
 
 .sheet {
-  background: var(--surface-card, #fff);
-  border: 1px solid var(--border-light);
-  border-radius: 14px;
+  /* 与首页卡片同一套面板令牌（36% / 深色 28%），比自己调的 76% 淡得多；
+     模糊只用 --surface-blur-* 四档里的 md */
+  background: var(--content-panel-bg);
+  border: 1px solid var(--content-panel-border);
+  backdrop-filter: blur(var(--surface-blur-md));
+  -webkit-backdrop-filter: blur(var(--surface-blur-md));
+  border-radius: 16px;
   padding: 12px 14px 14px;
   box-shadow: var(--shadow-card);
   min-width: 0;
@@ -1193,9 +1197,11 @@ audio {
   gap: 12px;
 }
 .card {
-  background: var(--surface-card, #fff);
-  border: 1px solid var(--border-light);
-  border-radius: 14px;
+  background: var(--content-panel-bg);
+  border: 1px solid var(--content-panel-border);
+  backdrop-filter: blur(var(--surface-blur-md));
+  -webkit-backdrop-filter: blur(var(--surface-blur-md));
+  border-radius: 16px;
   padding: 12px 14px;
   box-shadow: var(--shadow-card);
 }
