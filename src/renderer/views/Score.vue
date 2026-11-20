@@ -13,6 +13,7 @@ defineOptions({ name: 'score-page' });
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import PageScrollContainer from '@/components/ui/PageScrollContainer.vue';
 import SliverHeader from '@/components/music/DetailPageSliverHeader.vue';
+import ScorePitchRoll from '@/components/ScorePitchRoll.vue';
 import { usePlayerStore } from '@/stores/player';
 import { useThemeStore } from '@/stores/theme';
 import { useToastStore } from '@/stores/toast';
@@ -26,6 +27,7 @@ import {
   hitTest,
   layoutScore,
   noteAtTime,
+  noteName,
   scoreStats,
   shiftDegree,
   shiftDuration,
@@ -90,6 +92,21 @@ const errorMsg = ref('');
 const doc = ref<ScoreDoc | null>(null);
 const stats = computed(() => (doc.value ? scoreStats(doc.value) : null));
 
+/**
+ * 旋律音域：取原始检测音符（含量化时被丢弃的），范围比谱面宽，但可能含八度误判。
+ * 所以界面上标星号，不写成确定结论。
+ */
+const pitchRange = computed(() => {
+  const notes = doc.value?.raw_notes ?? [];
+  const midis = notes.map((n) => n.midi).filter((m) => Number.isFinite(m) && m > 0);
+  if (!midis.length) return null;
+  const keyRoot = doc.value?.meta.key_root ?? 0;
+  return {
+    low: noteName(Math.min(...midis), keyRoot),
+    high: noteName(Math.max(...midis), keyRoot),
+  };
+});
+
 /** 谱面能否跟播放走：本地文件用自己的播放器，正在播放的歌用播放器时间轴。 */
 const canFollow = computed(() => {
   const from = transcribedFrom.value;
@@ -107,6 +124,8 @@ const playTime = computed(() =>
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 const scrollerRef = ref<HTMLDivElement | null>(null);
 const layout = ref<ScoreLayout | null>(null);
+/** 简谱画布实际用的 dpr，音高块要跟它一致才对得齐、也不撞画布尺寸上限。 */
+const layoutDpr = ref(1);
 const selected = ref<{ mi: number; ni: number } | null>(null);
 /** 播放中的音（跟随播放高亮）。 */
 const playing = ref<Playhead | null>(null);
@@ -209,6 +228,7 @@ function renderCanvas() {
   const containerWidth = Math.max(360, canvasWidth.value);
   const next = layoutScore(doc.value, containerWidth, layoutMode.value);
   const dpr = pickDpr(next.width);
+  layoutDpr.value = dpr;
   canvas.width = Math.round(next.width * dpr);
   canvas.height = Math.round(next.height * dpr);
   canvas.style.width = `${Math.round(next.width)}px`;
@@ -636,6 +656,17 @@ onUnmounted(() => {
                 :class="{ editing }"
                 @click="onCanvasClick"
               />
+              <!-- 音高块只对横向铺开的单行版面有意义；换行模式下每行宽度不同，对不上 -->
+              <ScorePitchRoll
+                v-if="layout && layoutMode === 'scroll' && doc.raw_notes?.length"
+                :notes="doc.raw_notes"
+                :layout="layout"
+                :measures="doc.measures"
+                :bpm="doc.meta.bpm"
+                :theme="theme"
+                :dpr="layoutDpr"
+                :height="84"
+              />
               <i class="playhead" :style="playheadStyle" />
             </div>
             <div v-else class="sheet-empty">
@@ -757,7 +788,12 @@ onUnmounted(() => {
               <div>
                 <b>{{ Math.round(stats.lyricRate * 100) }}%</b><span>歌词挂载</span>
               </div>
+              <div v-if="pitchRange" class="stats-wide">
+                <b>{{ pitchRange.low }}–{{ pitchRange.high }}</b
+                ><span>音域*</span>
+              </div>
             </div>
+            <p v-if="pitchRange" class="stats-note">* 按原始旋律检测统计，可能含八度误判</p>
             <div v-else class="idle-text">等待开始</div>
 
             <div class="actions">
@@ -1192,6 +1228,15 @@ audio {
 .stats span {
   font-size: 10px;
   color: var(--text-secondary);
+}
+.stats-wide {
+  grid-column: 1 / -1;
+}
+.stats-note {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: var(--text-secondary);
+  opacity: 0.75;
 }
 
 .error-text {
