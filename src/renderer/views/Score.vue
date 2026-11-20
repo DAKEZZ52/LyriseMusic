@@ -13,6 +13,7 @@ defineOptions({ name: 'score-page' });
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import PageScrollContainer from '@/components/ui/PageScrollContainer.vue';
 import Checkbox from '@/components/ui/Checkbox.vue';
+import Drawer from '@/components/ui/Drawer.vue';
 import SliverHeader from '@/components/music/DetailPageSliverHeader.vue';
 import ScorePitchRoll from '@/components/ScorePitchRoll.vue';
 import { usePlayerStore } from '@/stores/player';
@@ -59,6 +60,8 @@ const engineChecking = ref(true);
 
 /* ───────────── 来源 ───────────── */
 const sourceType = ref<'current' | 'file'>('current');
+/** 右侧选项抽屉：收起时谱面独占整行宽度。 */
+const sideOpen = ref(false);
 const selectedFileName = ref('');
 /** 文件字节数：参与缓存键，同名不同内容的文件不会串缓存。 */
 const fileSize = ref(0);
@@ -724,8 +727,14 @@ onUnmounted(() => {
               <button v-if="doc" class="ghost" :class="{ on: editing }" @click="editing = !editing">
                 {{ editing ? '完成编辑' : '编辑' }}
               </button>
-              <button v-if="doc" class="ghost" @click="exportJson">导出 JSON</button>
-              <button v-if="doc" class="ghost" @click="openCacheDir">缓存目录</button>
+              <button class="ghost" @click="sideOpen = true">选项</button>
+              <button
+                class="primary"
+                :disabled="!engine?.available || busy"
+                @click="startTranscribe"
+              >
+                {{ busy ? '扒谱中…' : '开始扒谱' }}
+              </button>
             </div>
           </div>
 
@@ -788,9 +797,15 @@ onUnmounted(() => {
             <span><kbd>Del</kbd> 删除</span>
           </div>
         </section>
+      </div>
 
-        <!-- 侧栏 -->
+      <!-- 选项抽屉：收起时谱面独占整行；来源、参数、状态都在这里 -->
+      <Drawer v-model:open="sideOpen" side="right" panel-class="score-side-panel">
         <aside class="side">
+          <div class="side-head">
+            <h4>扒谱设置</h4>
+            <button class="ghost" @click="sideOpen = false">收起</button>
+          </div>
           <div class="card">
             <h4>音频来源</h4>
             <div class="seg">
@@ -907,10 +922,12 @@ onUnmounted(() => {
                 <span class="play-icon">▶</span> 开始扒谱
               </button>
               <button v-else class="danger" @click="cancelTranscribe">取消</button>
+              <button v-if="doc" class="ghost" @click="exportJson">导出 JSON</button>
+              <button v-if="doc" class="ghost" @click="openCacheDir">缓存目录</button>
             </div>
           </div>
         </aside>
-      </div>
+      </Drawer>
     </div>
   </PageScrollContainer>
 </template>
@@ -960,16 +977,10 @@ onUnmounted(() => {
 }
 
 .score-body {
-  /* 谱面在左、三张卡在右竖排：谱面占剩下的全部宽度 */
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
+  /* 谱面独占整行；来源/参数/状态收进右侧抽屉，需要时再展开 */
+  display: flex;
+  flex-direction: column;
   gap: 12px;
-  align-items: start;
-}
-@media (max-width: 1080px) {
-  .score-body {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 
 .sheet {
@@ -1158,8 +1169,8 @@ audio {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  /* 右栏三卡约 700px 高，这里给足高度让左右两边视觉平衡 */
-  height: 520px;
+  /* 谱面独占整行后不必再和右栏比高，给个舒服的留白高度 */
+  height: 460px;
   color: var(--text-secondary);
 }
 .empty-icon {
@@ -1195,10 +1206,32 @@ audio {
 }
 
 .side {
-  /* 右栏：三张卡竖排 */
+  /* 抽屉内容：撑满面板高度，条目多时自己滚动 */
   display: flex;
   flex-direction: column;
   gap: 12px;
+  height: 100%;
+  padding: 14px;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+/* 抽屉面板本身也用纵向 flex，否则里面的 height:100% 没有参照 */
+:global(.score-side-panel) {
+  display: flex;
+  flex-direction: column;
+}
+.side-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 2px;
+}
+.side-head h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
 }
 .card {
   /* 竖向 flex：三张卡等高后，状态卡的操作按钮靠 margin-top:auto 贴到底部对齐 */
