@@ -960,10 +960,16 @@ onUnmounted(() => {
 }
 
 .score-body {
-  /* 谱面在上、三张卡在下面排成一排：谱面能占满宽度，卡片也不用挤在 300px 里 */
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  /* 谱面在左、三张卡在右竖排：谱面占剩下的全部宽度 */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 12px;
+  align-items: start;
+}
+@media (max-width: 1080px) {
+  .score-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .sheet {
@@ -1152,8 +1158,8 @@ audio {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  /* 压到 200px：配合下面对边距的收窄，让谱面 + 三张卡刚好一屏放完 */
-  height: 200px;
+  /* 右栏三卡约 700px 高，这里给足高度让左右两边视觉平衡 */
+  height: 520px;
   color: var(--text-secondary);
 }
 .empty-icon {
@@ -1189,23 +1195,10 @@ audio {
 }
 
 .side {
-  /* 三张卡并排；只有窗口真的很窄时才落成一列 */
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* 右栏：三张卡竖排 */
+  display: flex;
+  flex-direction: column;
   gap: 12px;
-  align-items: stretch;
-}
-/* 扒谱选项排到最右，状态居中：视觉顺序 = 音频来源 / 状态 / 扒谱选项 */
-.side > .card:nth-of-type(2) {
-  order: 3;
-}
-.side > .card:nth-of-type(3) {
-  order: 2;
-}
-@media (max-width: 880px) {
-  .side {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 .card {
   /* 竖向 flex：三张卡等高后，状态卡的操作按钮靠 margin-top:auto 贴到底部对齐 */
