@@ -962,6 +962,8 @@ onUnmounted(() => {
 .engine-row .engine-option {
   flex-shrink: 0;
   white-space: nowrap;
+  padding: 6px 14px;
+  font-size: 13px;
 }
 .engine-row .engine-start {
   margin-left: 8px;
@@ -969,9 +971,9 @@ onUnmounted(() => {
   width: auto;
   flex-shrink: 0;
   white-space: nowrap;
-  padding: 5px 14px;
-  font-size: 12px;
-  border-radius: 8px;
+  padding: 7px 22px;
+  font-size: 13px;
+  border-radius: 9px;
 }
 .engine-row .dot {
   width: 7px;
