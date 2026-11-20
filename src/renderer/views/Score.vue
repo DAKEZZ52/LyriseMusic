@@ -675,14 +675,18 @@ onUnmounted(() => {
         <span v-if="engineChecking" class="engine-text">正在探测扒谱引擎…</span>
         <span v-else-if="engine?.available" class="engine-text">
           引擎就绪 · {{ engine.version }} ·
-          <b :class="{ 'gpu-on': engine.cuda }">{{ engine.cuda ? 'GPU 加速' : 'CPU 推理' }}</b>
+          <b :class="{ 'gpu-on': engine.cuda }">{{ engine.cuda ? '显卡加速' : '处理器运算' }}</b>
           · 本机运行不走云端
         </span>
         <span v-else class="engine-text bad">{{ engine?.reason || '引擎不可用' }}</span>
       </div>
-      <div v-if="engine?.available && !engine.cuda" class="engine-hint">
-        GPU 未启用：当前 PyTorch 是 CPU 版。装上 CUDA 版后这里会自动变成「GPU
-        加速」，分离与歌词识别会快数倍。
+      <!-- 引擎不随安装包分发：用大白话写明体积，别让用户以为这是个坏掉的功能 -->
+      <div v-if="!engine?.available && !engineChecking" class="engine-hint">
+        扒谱功能需要单独安装引擎，不随播放器一起下载：标准版约 1GB，显卡加速版约
+        4GB。装好后这里会显示引擎版本。
+      </div>
+      <div v-else-if="engine?.available && !engine.cuda" class="engine-hint">
+        当前用处理器运算。换显卡加速版（约 4GB）后会快好几倍，装好后这里会自动显示「显卡加速」。
       </div>
 
       <div class="score-body">
