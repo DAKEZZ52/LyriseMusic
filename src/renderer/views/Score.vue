@@ -683,6 +683,12 @@ onUnmounted(() => {
           · 本机运行不走云端
         </span>
         <span v-else class="engine-text bad">{{ engine?.reason || '引擎不可用' }}</span>
+        <span v-if="sourceType === 'current' && !currentSong" class="pick-hint">
+          先从左侧选一首歌
+        </span>
+        <span v-else-if="sourceType === 'file' && !selectedFileName" class="pick-hint">
+          先在选项里选音频文件
+        </span>
         <button class="ghost engine-option" @click="sideOpen = true">选项</button>
         <button
           class="primary engine-start"
@@ -692,13 +698,12 @@ onUnmounted(() => {
           {{ busy ? '扒谱中…' : '开始扒谱' }}
         </button>
       </div>
-      <!-- 引擎不随安装包分发：用大白话写明体积，别让用户以为这是个坏掉的功能 -->
+      <!-- 引擎不随安装包分发：一句话说清代价，别让用户以为功能坏了 -->
       <div v-if="!engine?.available && !engineChecking" class="engine-hint">
-        扒谱功能需要单独安装引擎，不随播放器一起下载：标准版约 1GB，显卡加速版约
-        4GB。装好后这里会显示引擎版本。
+        需要单独安装扒谱引擎：标准版约 1GB，显卡加速版约 4GB
       </div>
       <div v-else-if="engine?.available && !engine.cuda" class="engine-hint">
-        当前用处理器运算。换显卡加速版（约 4GB）后会快好几倍，装好后这里会自动显示「显卡加速」。
+        处理器运算中 · 换显卡加速版会快好几倍（约 4GB）
       </div>
 
       <div class="score-body">
@@ -959,11 +964,19 @@ onUnmounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* 「先选歌」提示：紧贴按钮左侧，不抢引擎状态的位置 */
+.engine-row .pick-hint {
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--text-secondary);
+  opacity: 0.85;
+}
 .engine-row .engine-option {
   flex-shrink: 0;
   white-space: nowrap;
   padding: 6px 14px;
-  font-size: 13px;
+  font-size: 15px;
 }
 .engine-row .engine-start {
   margin-left: 8px;
@@ -972,7 +985,7 @@ onUnmounted(() => {
   flex-shrink: 0;
   white-space: nowrap;
   padding: 7px 22px;
-  font-size: 13px;
+  font-size: 15px;
   border-radius: 9px;
 }
 .engine-row .dot {
