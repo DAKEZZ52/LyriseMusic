@@ -683,12 +683,14 @@ onUnmounted(() => {
           · 本机运行不走云端
         </span>
         <span v-else class="engine-text bad">{{ engine?.reason || '引擎不可用' }}</span>
-        <span v-if="sourceType === 'current' && !currentSong" class="pick-hint">
-          先从左侧选一首歌
+        <span v-if="sourceType === 'current' && currentSong" class="pick-hint source-name">
+          当前 · {{ currentTitle }}
         </span>
-        <span v-else-if="sourceType === 'file' && !selectedFileName" class="pick-hint">
-          先在选项里选音频文件
+        <span v-else-if="sourceType === 'current'" class="pick-hint">先从左侧选一首歌</span>
+        <span v-else-if="selectedFileName" class="pick-hint source-name">
+          文件 · {{ selectedFileName }}
         </span>
+        <span v-else class="pick-hint">先在选项里选音频文件</span>
         <button class="ghost engine-option" @click="sideOpen = true">选项</button>
         <button
           class="primary engine-start"
@@ -971,6 +973,14 @@ onUnmounted(() => {
   font-size: 12px;
   color: var(--text-secondary);
   opacity: 0.85;
+}
+/* 已经选到来源时把歌名/文件名亮出来，让用户确认扒的是哪一首 */
+.engine-row .pick-hint.source-name {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-main);
+  opacity: 1;
 }
 .engine-row .engine-option {
   flex-shrink: 0;
