@@ -6,6 +6,7 @@ export default [
   {
     ignores: [
       'node_modules/**',
+      '.vite-cache/**',
       'dist/**',
       'dist-electron/**',
       'out/**',

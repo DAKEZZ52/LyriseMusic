@@ -92,3 +92,6 @@ room-server/*.db
 room-server/*.db-shm
 room-server/*.db-wal
 room-server/rooms.json
+
+# Vite prebuild cache (in repo root so reinstalling node_modules keeps it)
+.vite-cache/

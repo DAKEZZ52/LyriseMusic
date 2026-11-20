@@ -97,6 +97,10 @@ export default defineConfig({
       },
     },
   },
+  // 依赖预构建缓存放到项目内：重装 node_modules 时不会连它一起删掉。
+  // 默认在 node_modules/.vite，重装后第一次 dev 启动要重新预构建几百个模块
+  // （实测入口就绪从 1.2s 掉到 16s，整个启动 48s）。
+  cacheDir: '.vite-cache',
   plugins: [
     cspPlugin(),
     vue(),
@@ -151,7 +155,34 @@ export default defineConfig({
   server: {
     // dev 模式下 API 请求通过 IPC 直连 main 进程，不再需要 HTTP proxy
     watch: {
-      ignored: ['**/.planning/**'],
+      ignored: ['**/.planning/**', '**/.vite-cache/**'],
+    },
+    // 启动时在后台预编译首屏与常用页面，避免第一次点进去现场编译导致的「卡一会」。
+    // 语聊房、扒谱、人声分离这些重页面不预热：dev 下编译量大，而且不是高频入口。
+    warmup: {
+      clientFiles: [
+        './src/renderer/main.ts',
+        './src/renderer/App.vue',
+        './src/renderer/router/index.ts',
+        './src/renderer/layouts/MainLayout.vue',
+        './src/renderer/views/Loading.vue',
+        './src/renderer/views/Home.vue',
+        './src/renderer/views/Search.vue',
+        './src/renderer/views/Favorites.vue',
+        './src/renderer/views/History.vue',
+        './src/renderer/views/Ranking.vue',
+        './src/renderer/views/Explore.vue',
+        './src/renderer/views/RecommendSongs.vue',
+        './src/renderer/views/Cloud.vue',
+        './src/renderer/views/LocalMusic.vue',
+        './src/renderer/views/Download.vue',
+        './src/renderer/views/Settings.vue',
+        './src/renderer/views/Profile.vue',
+        './src/renderer/views/details/PlaylistDetail.vue',
+        './src/renderer/views/details/SongDetail.vue',
+        './src/renderer/views/details/AlbumDetail.vue',
+        './src/renderer/views/lyric/LyricPage.vue',
+      ],
     },
   },
   resolve: {
