@@ -916,10 +916,10 @@ onUnmounted(() => {
 
 <style scoped>
 .score-page {
-  padding: 8px 24px 28px;
+  padding: 6px 20px 14px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 
 .engine-row {
@@ -962,7 +962,7 @@ onUnmounted(() => {
   /* 谱面在上、三张卡在下面排成一排：谱面能占满宽度，卡片也不用挤在 300px 里 */
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 
 .sheet {
@@ -1151,7 +1151,8 @@ audio {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  height: 320px;
+  /* 压到 200px：配合下面对边距的收窄，让谱面 + 三张卡刚好一屏放完 */
+  height: 200px;
   color: var(--text-secondary);
 }
 .empty-icon {
@@ -1190,7 +1191,7 @@ audio {
   /* 三张卡并排；只有窗口真的很窄时才落成一列 */
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  gap: 12px;
   align-items: stretch;
 }
 @media (max-width: 880px) {
@@ -1207,11 +1208,11 @@ audio {
   backdrop-filter: blur(var(--surface-blur-md));
   -webkit-backdrop-filter: blur(var(--surface-blur-md));
   border-radius: 16px;
-  padding: 12px 14px;
+  padding: 10px 12px;
   box-shadow: var(--shadow-card);
 }
 .card h4 {
-  margin: 0 0 10px;
+  margin: 0 0 8px;
   font-size: 12px;
   font-weight: 600;
   color: var(--text-secondary);
