@@ -46,6 +46,8 @@ import type {
 } from '../shared/localMusic';
 import {
   SCOREFLOW_IPC_CHANNELS,
+  type ScoreCacheChange,
+  type ScoreCacheEntry,
   type ScoreDoc,
   type ScoreEngineStatus,
   type ScoreOptions,
@@ -507,6 +509,22 @@ contextBridge.exposeInMainWorld('electron', {
         func(progress);
       ipcRenderer.on(SCOREFLOW_IPC_CHANNELS.progress, listener);
       return () => ipcRenderer.removeListener(SCOREFLOW_IPC_CHANNELS.progress, listener);
+    },
+    cacheRead: (key: string) =>
+      invokeWithPlainPayload<ScoreCacheEntry | null>(SCOREFLOW_IPC_CHANNELS.cacheRead, key),
+    cacheWrite: (payload: { key: string; label: string; doc: ScoreDoc; engineVersion?: string }) =>
+      invokeWithPlainPayload<string>(SCOREFLOW_IPC_CHANNELS.cacheWrite, payload),
+    cacheList: () =>
+      invokeWithPlainPayload<{
+        dir: string;
+        entries: { key: string; label: string; savedAt: number }[];
+      }>(SCOREFLOW_IPC_CHANNELS.cacheList),
+    cacheOpenDir: () => invokeWithPlainPayload<string>(SCOREFLOW_IPC_CHANNELS.cacheOpenDir),
+    onCacheChanged: (func: (change: ScoreCacheChange) => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, change: ScoreCacheChange) =>
+        func(change);
+      ipcRenderer.on(SCOREFLOW_IPC_CHANNELS.cacheChanged, listener);
+      return () => ipcRenderer.removeListener(SCOREFLOW_IPC_CHANNELS.cacheChanged, listener);
     },
   },
   diagnostics: {

@@ -15,6 +15,7 @@ import {
   cleanupDesktopLyric,
 } from './desktopLyric';
 import { initPlayer, destroyPlayer } from './player';
+import { stopScoreCacheWatcher } from './scoreflow/cache';
 import { initMediaControls, destroyMediaControls } from './mediaControls';
 import { destroyAudioCapture } from './audioCapture';
 import { cleanupMiniPlayer } from './miniPlayer';
@@ -283,6 +284,8 @@ if (!gotTheLock) {
       log.info('[Main] before-quit: cleaning up native resources');
       try {
         globalShortcut.unregisterAll();
+        // 停掉扒谱缓存的目录监听
+        stopScoreCacheWatcher();
         // 清理桌面歌词模块的事件监听器和定时器
         cleanupDesktopLyric();
         // 清理 mini 播放器模块的事件监听器和定时器

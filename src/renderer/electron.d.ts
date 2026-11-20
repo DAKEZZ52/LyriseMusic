@@ -23,6 +23,8 @@ import type {
 } from '../shared/separator';
 import type { LocalMusicAddFilesResult, LocalMusicLibrary } from '../shared/localMusic';
 import type {
+  ScoreCacheChange,
+  ScoreCacheEntry,
   ScoreDoc,
   ScoreEngineStatus,
   ScoreOptions,
@@ -253,6 +255,19 @@ export interface IElectronAPI {
     cancel: () => Promise<boolean>;
     exportJson: (doc: ScoreDoc, suggestedName?: string) => Promise<string | null>;
     onProgress: (func: (progress: ScoreProgress) => void) => () => void;
+    cacheRead: (key: string) => Promise<ScoreCacheEntry | null>;
+    cacheWrite: (payload: {
+      key: string;
+      label: string;
+      doc: ScoreDoc;
+      engineVersion?: string;
+    }) => Promise<string>;
+    cacheList: () => Promise<{
+      dir: string;
+      entries: { key: string; label: string; savedAt: number }[];
+    }>;
+    cacheOpenDir: () => Promise<string>;
+    onCacheChanged: (func: (change: ScoreCacheChange) => void) => () => void;
   };
   localMusic: {
     listLibraries: () => Promise<LocalMusicLibrary[]>;

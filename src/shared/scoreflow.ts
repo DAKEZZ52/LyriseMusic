@@ -199,6 +199,25 @@ export interface ScoreResult {
   elapsed: number;
 }
 
+/** 扒谱缓存条目：按「歌曲 / 本地文件」为键存一份谱面，免去每次重跑引擎。 */
+export interface ScoreCacheEntry {
+  /** 缓存键，形如 song:<id> 或 file:<名称>:<字节数>。 */
+  key: string;
+  /** 展示用名称（歌名或文件名）。 */
+  label: string;
+  /** 落盘时间（毫秒）。 */
+  savedAt: number;
+  /** 扒谱时的引擎版本，仅供排查，命中缓存不做版本校验。 */
+  engineVersion?: string;
+  doc: ScoreDoc;
+}
+
+/** 缓存变化事件（主进程 -> 渲染层）：只带键与时间，需要数据再单独读。 */
+export interface ScoreCacheChange {
+  key: string;
+  savedAt: number;
+}
+
 /** 扒谱相关 IPC 通道常量。 */
 export const SCOREFLOW_IPC_CHANNELS = {
   /** 探测引擎是否可用（入参无，返回 ScoreEngineStatus）。 */
@@ -209,6 +228,16 @@ export const SCOREFLOW_IPC_CHANNELS = {
   cancel: 'scoreflow:cancel',
   /** 导出谱面 JSON 到用户选择的位置（入参 { doc, suggestedName }，返回路径；取消返回 null）。 */
   exportJson: 'scoreflow:exportJson',
+  /** 读缓存（入参 key，返回 ScoreCacheEntry | null）。 */
+  cacheRead: 'scoreflow:cacheRead',
+  /** 写缓存（入参 { key, label, doc, engineVersion }，返回缓存文件路径）。 */
+  cacheWrite: 'scoreflow:cacheWrite',
+  /** 列出缓存目录与已有键（入参无，返回 { dir, entries }）。 */
+  cacheList: 'scoreflow:cacheList',
+  /** 在文件管理器里打开缓存目录（入参无，返回目录路径）。 */
+  cacheOpenDir: 'scoreflow:cacheOpenDir',
   /** 主进程 -> 渲染层的进度事件（入参 ScoreProgress）。 */
   progress: 'scoreflow:progress',
+  /** 主进程 -> 渲染层：缓存文件被改动（入参 ScoreCacheChange），用于热更新。 */
+  cacheChanged: 'scoreflow:cacheChanged',
 } as const;

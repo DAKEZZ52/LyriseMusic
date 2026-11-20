@@ -13,6 +13,13 @@ import { assertFeatureEnabled } from '../remoteFlags';
 import type { IpcContext } from '../ipc/types';
 import { cancelTranscribe, probeEngine, transcribe } from './engine';
 import {
+  listScoreCache,
+  readScoreCache,
+  scoreCacheDir,
+  startScoreCacheWatcher,
+  writeScoreCache,
+} from './cache';
+import {
   SCOREFLOW_IPC_CHANNELS,
   type ScoreDoc,
   type ScoreOptions,
@@ -91,6 +98,43 @@ export const registerScoreflowHandlers = (context: IpcContext): void => {
       return result.filePath;
     },
   );
+
+  /** 读缓存：命中就直接渲染，不用重跑引擎。 */
+  ipcRegistry.registerHandler(SCOREFLOW_IPC_CHANNELS.cacheRead, (_event, key: string) =>
+    readScoreCache(String(key || '')),
+  );
+
+  /** 写缓存：扒谱成功后由渲染层调用，顺手把目录监听挂上。 */
+  ipcRegistry.registerHandler(
+    SCOREFLOW_IPC_CHANNELS.cacheWrite,
+    (_event, payload: { key: string; label: string; doc: ScoreDoc; engineVersion?: string }) => {
+      if (!payload?.doc || !Array.isArray(payload.doc.measures)) throw new Error('谱面数据无效');
+      const file = writeScoreCache({
+        key: String(payload.key || ''),
+        label: String(payload.label || ''),
+        doc: payload.doc,
+        engineVersion: payload.engineVersion,
+      });
+      // 监听挂在主窗口上：缓存被改时推给页面，页面自己决定要不要刷新。
+      // 这里每轮都取当前窗口，不缓存 sender —— 页面刷新后 sender 会失效。
+      startScoreCacheWatcher((change) => {
+        const window = context.getMainWindow();
+        if (!window || window.isDestroyed() || window.webContents.isDestroyed()) return;
+        window.webContents.send(SCOREFLOW_IPC_CHANNELS.cacheChanged, change);
+      });
+      return file;
+    },
+  );
+
+  /** 列出缓存目录与已有条目。 */
+  ipcRegistry.registerHandler(SCOREFLOW_IPC_CHANNELS.cacheList, () => listScoreCache());
+
+  /** 在文件管理器里打开缓存目录，方便直接改 json。 */
+  ipcRegistry.registerHandler(SCOREFLOW_IPC_CHANNELS.cacheOpenDir, async () => {
+    const dir = scoreCacheDir();
+    await shell.openPath(dir);
+    return dir;
+  });
 };
 
 /** 供其他模块引用的导出目录提示（当前未使用，保留给后续「打开输出目录」入口）。 */

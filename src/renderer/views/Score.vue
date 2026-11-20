@@ -37,6 +37,7 @@ import {
   type ScoreTheme,
 } from '@/utils/jianpu';
 import type {
+  ScoreCacheEntry,
   ScoreDoc,
   ScoreEngineStatus,
   ScoreOptions,
@@ -58,6 +59,8 @@ const engineChecking = ref(true);
 /* ───────────── 来源 ───────────── */
 const sourceType = ref<'current' | 'file'>('current');
 const selectedFileName = ref('');
+/** 文件字节数：参与缓存键，同名不同内容的文件不会串缓存。 */
+const fileSize = ref(0);
 let fileBuffer: ArrayBuffer | null = null;
 const currentSong = computed(() => (playerStore.currentTrackSnapshot as Song | null) ?? null);
 const currentTitle = computed(() => currentSong.value?.name || currentSong.value?.title || '');
@@ -107,6 +110,58 @@ const pitchRange = computed(() => {
   };
 });
 
+/* ───────────── 扒谱缓存 ───────────── */
+
+/** 缓存键：在线歌按歌曲 id，本地文件按「文件名 + 字节数」。 */
+const cacheKey = computed(() => {
+  if (sourceType.value === 'current') {
+    const id = currentSong.value?.id;
+    return id ? `song:${id}` : '';
+  }
+  if (!selectedFileName.value || !fileSize.value) return '';
+  return `file:${selectedFileName.value}:${fileSize.value}`;
+});
+/** 当前谱面来自缓存的时间戳，0 表示不是缓存命中的。 */
+const cachedAt = ref(0);
+
+/** 把缓存条目录入界面：谱面、来源、缓存时间一起换，音高块和音域会跟着响应式重绘。 */
+async function applyCacheEntry(entry: ScoreCacheEntry, key: string) {
+  doc.value = entry.doc;
+  selected.value = null;
+  playing.value = null;
+  cachedAt.value = entry.savedAt;
+  transcribedFrom.value = {
+    type: key.startsWith('file:') ? 'file' : 'current',
+    songId: key.startsWith('song:') ? key.slice(5) : undefined,
+    name: entry.label,
+  };
+  await nextTick();
+  renderCanvas();
+}
+
+/** 进页面 / 切来源 / 切歌时先看有没有缓存，有就直接显示，不用跑引擎。 */
+async function loadCacheForCurrentSource() {
+  const key = cacheKey.value;
+  if (!key || busy.value) return;
+  const api = window.electron?.scoreflow;
+  if (!api?.cacheRead) return;
+  try {
+    const entry = await api.cacheRead(key);
+    if (entry) await applyCacheEntry(entry, key);
+  } catch {
+    // 缓存损坏（比如用户改到一半）不该挡住手动扒谱，静默跳过
+  }
+}
+
+async function openCacheDir() {
+  try {
+    const dir = await window.electron?.scoreflow?.cacheOpenDir();
+    if (dir) toast.success('缓存目录已打开');
+  } catch (error) {
+    toast.danger(readableError(error));
+  }
+}
+
 /** 谱面能否跟播放走：本地文件用自己的播放器，正在播放的歌用播放器时间轴。 */
 const canFollow = computed(() => {
   const from = transcribedFrom.value;
@@ -137,6 +192,7 @@ const editing = ref(false);
 const canvasWidth = ref(900);
 let resizeObserver: ResizeObserver | null = null;
 let disposeProgress: (() => void) | null = null;
+let disposeCacheChanged: (() => void) | null = null;
 
 const isDark = computed(() => document.documentElement.classList.contains('dark'));
 const theme = computed<ScoreTheme>(() => (isDark.value ? DARK_THEME : LIGHT_THEME));
@@ -206,6 +262,7 @@ function onFilePicked(event: Event) {
   const file = input.files?.[0];
   if (!file) return;
   selectedFileName.value = file.name;
+  fileSize.value = file.size;
   errorMsg.value = '';
   const reader = new FileReader();
   reader.onload = () => {
@@ -373,6 +430,21 @@ async function startTranscribe() {
       options,
     );
     doc.value = result.doc;
+    // 落盘缓存：下次进页面直接命中；用户手动改这份 json 也能热更新回来
+    const keyNow = cacheKey.value;
+    if (keyNow) {
+      try {
+        await window.electron.scoreflow.cacheWrite({
+          key: keyNow,
+          label: options.title || baseName,
+          doc: result.doc,
+          engineVersion: engine.value?.version,
+        });
+        cachedAt.value = Date.now();
+      } catch {
+        // 写缓存失败不影响本次结果
+      }
+    }
     selected.value = null;
     playing.value = null;
     transcribedFrom.value = fromFile
@@ -423,6 +495,10 @@ async function exportJson() {
 
 /* ───────────── 生命周期 ───────────── */
 watch(isDark, () => renderCanvas());
+// 换歌 / 换来源时看看有没有现成缓存
+watch([sourceType, selectedFileName, () => currentSong.value?.id], () => {
+  void loadCacheForCurrentSource();
+});
 
 /** 播放位置变化 -> 高亮当前音。高亮是 DOM 层，这里不重绘画布。 */
 watch(playTime, (time) => {
@@ -522,6 +598,16 @@ onMounted(async () => {
     progress.value = next;
     if (next.elapsed) elapsed.value = next.elapsed;
   });
+  // 缓存被外部改动（手动编辑 json 保存）时，只要改的是当前这份就直接换上去
+  disposeCacheChanged = api.onCacheChanged(async (change) => {
+    if (change.key !== cacheKey.value) return;
+    try {
+      const entry = await api.cacheRead(change.key);
+      if (entry) await applyCacheEntry(entry, change.key);
+    } catch {
+      /* 编辑器可能只写了一半，下一轮事件会补上 */
+    }
+  });
   document.addEventListener('keydown', onKeydown);
   resizeObserver = new ResizeObserver((entries) => {
     const width = entries[0]?.contentRect.width ?? 0;
@@ -545,10 +631,13 @@ onMounted(async () => {
     };
   }
   engineChecking.value = false;
+  // 引擎状态拿到后再试一次缓存：即便引擎不可用，之前扒好的谱面照样能看
+  void loadCacheForCurrentSource();
 });
 
 onUnmounted(() => {
   disposeProgress?.();
+  disposeCacheChanged?.();
   document.removeEventListener('keydown', onKeydown);
   resizeObserver?.disconnect();
   localAudioRef.value?.pause();
@@ -625,6 +714,7 @@ onUnmounted(() => {
                 {{ editing ? '完成编辑' : '编辑' }}
               </button>
               <button v-if="doc" class="ghost" @click="exportJson">导出 JSON</button>
+              <button v-if="doc" class="ghost" @click="openCacheDir">缓存目录</button>
             </div>
           </div>
 
