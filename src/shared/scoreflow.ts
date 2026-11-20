@@ -238,6 +238,10 @@ export const SCOREFLOW_IPC_CHANNELS = {
   cancel: 'scoreflow:cancel',
   /** 导出谱面 JSON 到用户选择的位置（入参 { doc, suggestedName }，返回路径；取消返回 null）。 */
   exportJson: 'scoreflow:exportJson',
+  /** 导出 MIDI（入参 { data, suggestedName }，返回路径；取消返回 null）。 */
+  exportMidi: 'scoreflow:exportMidi',
+  /** 导出谱面为 PNG 图片（入参 { dataUrl, suggestedName }，返回路径；取消返回 null）。 */
+  exportImage: 'scoreflow:exportImage',
   /** 读缓存（入参 key，返回 ScoreCacheEntry | null）。 */
   cacheRead: 'scoreflow:cacheRead',
   /** 写缓存（入参 { key, label, doc, engineVersion }，返回缓存文件路径）。 */

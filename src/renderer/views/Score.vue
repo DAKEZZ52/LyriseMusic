@@ -16,11 +16,13 @@ import Checkbox from '@/components/ui/Checkbox.vue';
 import Drawer from '@/components/ui/Drawer.vue';
 import SliverHeader from '@/components/music/DetailPageSliverHeader.vue';
 import ScorePitchRoll from '@/components/ScorePitchRoll.vue';
+import ScoreChordBar from '@/components/ScoreChordBar.vue';
 import { usePlayerStore } from '@/stores/player';
 import { useThemeStore } from '@/stores/theme';
 import { useToastStore } from '@/stores/toast';
 import { iconDisc } from '@/icons';
 import { createThemedIconCoverUrl } from '@/utils/cover';
+import { buildScoreMidi } from '@/utils/midi';
 import {
   DARK_THEME,
   LIGHT_THEME,
@@ -497,6 +499,72 @@ async function exportJson() {
   }
 }
 
+/** 导出 MIDI：旋律一轨、和弦一轨，可直接拖进编曲软件。 */
+async function exportMidi() {
+  if (!doc.value) return;
+  try {
+    const bytes = buildScoreMidi(doc.value);
+    const path = await window.electron.scoreflow.exportMidi(bytes, doc.value.meta.title);
+    if (path) toast.success(`已导出到 ${path}`);
+  } catch (error) {
+    toast.danger(readableError(error));
+  }
+}
+
+/** 导出图片的底部水印高度。 */
+const WATERMARK_H = 52;
+
+/**
+ * 把整首谱面画进离屏画布并加水印。
+ * 用换行版面而不是横向铺开：横向会画出几万像素宽的长条，换行版才适合当图片分享。
+ * 固定浅色主题——导出的图不该跟着界面的深色模式走。
+ */
+function renderScoreImage(target: ScoreDoc): string {
+  const layout = layoutScore(target, 1600, 'wrap');
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(layout.width);
+  canvas.height = Math.round(layout.height) + WATERMARK_H;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('无法创建画布');
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  drawScore(ctx, target, layout, LIGHT_THEME, null, 1, null);
+
+  const lineY = Math.round(layout.height) + 0.5;
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.08)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, lineY);
+  ctx.lineTo(canvas.width, lineY);
+  ctx.stroke();
+
+  const midY = lineY + WATERMARK_H / 2;
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+  ctx.font = '600 16px system-ui, -apple-system, "Microsoft YaHei", sans-serif';
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.42)';
+  ctx.fillText('Lyrise Music', 28, midY);
+
+  ctx.textAlign = 'right';
+  ctx.font = '12px system-ui, -apple-system, "Microsoft YaHei", sans-serif';
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
+  ctx.fillText('lyrise.top', canvas.width - 28, midY);
+
+  return canvas.toDataURL('image/png');
+}
+
+async function exportImage() {
+  if (!doc.value) return;
+  try {
+    const dataUrl = renderScoreImage(doc.value);
+    const path = await window.electron.scoreflow.exportImage(dataUrl, doc.value.meta.title);
+    if (path) toast.success(`已导出到 ${path}`);
+  } catch (error) {
+    toast.danger(readableError(error));
+  }
+}
+
 /* ───────────── 生命周期 ───────────── */
 watch(isDark, () => renderCanvas());
 // 换歌 / 换来源时看看有没有现成缓存
@@ -549,6 +617,16 @@ const playheadBeat = computed(() => {
   }
   const step = times[hi] - times[lo];
   return lo + (step > 0 ? (t - times[lo]) / step : 0);
+});
+
+/** 当前播放到的小节下标，-1 表示没有在跟播放。 */
+const currentBarIndex = computed(() => {
+  const d = doc.value;
+  if (!d || !playing.value) return -1;
+  const beat = playheadBeat.value;
+  return d.measures.findIndex(
+    (measure) => beat >= measure.start_beat && beat < measure.start_beat + measure.beats,
+  );
 });
 
 /** 当前拍所处的和弦（顶部显示）。 */
@@ -773,6 +851,13 @@ onUnmounted(() => {
                 :class="{ editing }"
                 @click="onCanvasClick"
               />
+              <!-- 和弦进行条：紧贴谱面下方，弹唱时先看和弦再看指法 -->
+              <ScoreChordBar
+                v-if="layout && layoutMode === 'scroll' && doc.measures?.length"
+                :measures="doc.measures"
+                :bars="layout.bars"
+                :current-bar="currentBarIndex"
+              />
               <!-- 音高块只对横向铺开的单行版面有意义；换行模式下每行宽度不同，对不上 -->
               <ScorePitchRoll
                 v-if="layout && layoutMode === 'scroll' && doc.raw_notes?.length"
@@ -930,6 +1015,8 @@ onUnmounted(() => {
               </button>
               <button v-else class="danger" @click="cancelTranscribe">取消</button>
               <button v-if="doc" class="ghost" @click="exportJson">导出 JSON</button>
+              <button v-if="doc" class="ghost" @click="exportMidi">导出 MIDI</button>
+              <button v-if="doc" class="ghost" @click="exportImage">导出图片</button>
               <button v-if="doc" class="ghost" @click="openCacheDir">缓存目录</button>
             </div>
           </div>

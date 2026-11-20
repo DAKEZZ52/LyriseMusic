@@ -504,6 +504,15 @@ contextBridge.exposeInMainWorld('electron', {
         doc,
         suggestedName,
       }),
+    exportMidi: (data: Uint8Array, suggestedName?: string) =>
+      ipcRenderer.invoke(SCOREFLOW_IPC_CHANNELS.exportMidi, { data, suggestedName }) as Promise<
+        string | null
+      >,
+    exportImage: (dataUrl: string, suggestedName?: string) =>
+      invokeWithPlainPayload<string | null>(SCOREFLOW_IPC_CHANNELS.exportImage, {
+        dataUrl,
+        suggestedName,
+      }),
     onProgress: (func: (progress: ScoreProgress) => void) => {
       const listener = (_event: Electron.IpcRendererEvent, progress: ScoreProgress) =>
         func(progress);

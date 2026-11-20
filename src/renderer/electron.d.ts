@@ -254,6 +254,8 @@ export interface IElectronAPI {
     transcribe: (input: ScorePcmInput, options?: ScoreOptions) => Promise<ScoreResult>;
     cancel: () => Promise<boolean>;
     exportJson: (doc: ScoreDoc, suggestedName?: string) => Promise<string | null>;
+    exportMidi: (data: Uint8Array, suggestedName?: string) => Promise<string | null>;
+    exportImage: (dataUrl: string, suggestedName?: string) => Promise<string | null>;
     onProgress: (func: (progress: ScoreProgress) => void) => () => void;
     cacheRead: (key: string) => Promise<ScoreCacheEntry | null>;
     cacheWrite: (payload: {

@@ -99,6 +99,58 @@ export const registerScoreflowHandlers = (context: IpcContext): void => {
     },
   );
 
+  /** 导出 MIDI：渲染层生成好字节，这里只负责落盘。 */
+  ipcRegistry.registerHandler(
+    SCOREFLOW_IPC_CHANNELS.exportMidi,
+    async (_event, payload: { data: Uint8Array | number[]; suggestedName?: string }) => {
+      const raw = payload?.data;
+      if (!raw || !raw.length) throw new Error('MIDI 数据为空');
+      const buffer = Buffer.from(raw instanceof Uint8Array ? raw : Uint8Array.from(raw));
+      if (buffer.length < 14 || buffer.toString('ascii', 0, 4) !== 'MThd') {
+        throw new Error('MIDI 数据无效');
+      }
+      const window = context.getMainWindow();
+      const safeName = String(payload.suggestedName || 'score')
+        .replace(/[\\/:*?"<>|]/g, '_')
+        .slice(0, 80);
+      const result = await dialog.showSaveDialog(window as Electron.BrowserWindow, {
+        title: '导出 MIDI',
+        defaultPath: `${safeName}.mid`,
+        filters: [{ name: 'MIDI 文件', extensions: ['mid'] }],
+      });
+      if (result.canceled || !result.filePath) return null;
+      fs.writeFileSync(result.filePath, buffer);
+      shell.showItemInFolder(result.filePath);
+      return result.filePath;
+    },
+  );
+
+  /** 导出 PNG：渲染层把谱面画成 dataURL，这里解出字节落盘。 */
+  ipcRegistry.registerHandler(
+    SCOREFLOW_IPC_CHANNELS.exportImage,
+    async (_event, payload: { dataUrl: string; suggestedName?: string }) => {
+      const dataUrl = String(payload?.dataUrl || '');
+      const marker = 'base64,';
+      const at = dataUrl.indexOf(marker);
+      if (!dataUrl.startsWith('data:image/png') || at < 0) throw new Error('图片数据无效');
+      const buffer = Buffer.from(dataUrl.slice(at + marker.length), 'base64');
+      if (buffer.length < 8) throw new Error('图片数据为空');
+      const window = context.getMainWindow();
+      const safeName = String(payload.suggestedName || 'score')
+        .replace(/[\\/:*?"<>|]/g, '_')
+        .slice(0, 80);
+      const result = await dialog.showSaveDialog(window as Electron.BrowserWindow, {
+        title: '导出图片',
+        defaultPath: `${safeName}.png`,
+        filters: [{ name: 'PNG 图片', extensions: ['png'] }],
+      });
+      if (result.canceled || !result.filePath) return null;
+      fs.writeFileSync(result.filePath, buffer);
+      shell.showItemInFolder(result.filePath);
+      return result.filePath;
+    },
+  );
+
   /** 读缓存：命中就直接渲染，不用重跑引擎。 */
   ipcRegistry.registerHandler(SCOREFLOW_IPC_CHANNELS.cacheRead, (_event, key: string) =>
     readScoreCache(String(key || '')),
