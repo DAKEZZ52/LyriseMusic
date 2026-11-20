@@ -12,6 +12,7 @@ defineOptions({ name: 'score-page' });
 
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import PageScrollContainer from '@/components/ui/PageScrollContainer.vue';
+import Checkbox from '@/components/ui/Checkbox.vue';
 import SliverHeader from '@/components/music/DetailPageSliverHeader.vue';
 import ScorePitchRoll from '@/components/ScorePitchRoll.vue';
 import { usePlayerStore } from '@/stores/player';
@@ -816,11 +817,11 @@ onUnmounted(() => {
           <div class="card">
             <h4>扒谱选项</h4>
             <label class="opt">
-              <input v-model="optSeparate" type="checkbox" />
+              <Checkbox v-model="optSeparate" aria-label="分离人声" />
               <span>分离人声（和弦更准，慢一些）</span>
             </label>
             <label class="opt">
-              <input v-model="optLyrics" type="checkbox" />
+              <Checkbox v-model="optLyrics" aria-label="识别并逐字对齐歌词" />
               <span>识别并逐字对齐歌词</span>
             </label>
             <div class="field">
@@ -859,7 +860,7 @@ onUnmounted(() => {
           <div class="card">
             <h4>状态</h4>
             <label v-if="doc" class="opt follow">
-              <input v-model="followPlayback" type="checkbox" :disabled="!canFollow" />
+              <Checkbox v-model="followPlayback" :disabled="!canFollow" aria-label="跟随播放高亮" />
               <span>{{ canFollow ? '跟随播放高亮' : '当前无法跟随' }}</span>
             </label>
             <div v-if="busy" class="progress-wrap">
@@ -1193,6 +1194,13 @@ audio {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   align-items: stretch;
+}
+/* 扒谱选项排到最右，状态居中：视觉顺序 = 音频来源 / 状态 / 扒谱选项 */
+.side > .card:nth-of-type(2) {
+  order: 3;
+}
+.side > .card:nth-of-type(3) {
+  order: 2;
 }
 @media (max-width: 880px) {
   .side {
