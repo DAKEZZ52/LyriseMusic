@@ -959,15 +959,10 @@ onUnmounted(() => {
 }
 
 .score-body {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
-  gap: 16px;
-  align-items: start;
-}
-@media (max-width: 1080px) {
-  .score-body {
-    grid-template-columns: minmax(0, 1fr);
-  }
+  /* 谱面在上、三张卡在下面排成一排：谱面能占满宽度，卡片也不用挤在 300px 里 */
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .sheet {
@@ -1192,9 +1187,21 @@ audio {
 }
 
 .side {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  /* 三张卡并排；窄屏在下面降级为 2 列 / 1 列 */
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+@media (max-width: 1280px) {
+  .side {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 900px) {
+  .side {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 .card {
   background: var(--content-panel-bg);
