@@ -18,6 +18,7 @@ import { useLocalMusicStore, localFileToSong } from '@/stores/localMusic';
 import { createThemedIconCoverUrl } from '@/utils/cover';
 import { filterSongsByQuery, sortSongs } from '@/utils/songList';
 import SliverHeader from '@/components/music/DetailPageSliverHeader.vue';
+import TagEditorDialog from '@/components/localMusic/TagEditorDialog.vue';
 import SongList from '@/components/music/SongList.vue';
 import SongListHeader from '@/components/music/SongListHeader.vue';
 import PageStickyHeader from '@/components/ui/PageStickyHeader.vue';
@@ -82,11 +83,38 @@ const handleSongDoubleTapPlay = (song: Song) => {
   void localStore.playSong(song);
 };
 
+/* ───────────── 标签编辑 ───────────── */
+const tagEditorOpen = ref(false);
+const tagEditorPaths = ref<string[]>([]);
+
+/** 打开标签编辑弹窗；批量入口将来也从这里进。 */
+function openTagEditor(filePaths: string[]) {
+  const paths = filePaths.map((item) => String(item || '').trim()).filter(Boolean);
+  if (!paths.length) return;
+  tagEditorPaths.value = paths;
+  tagEditorOpen.value = true;
+}
+
+/** 写完标签后重扫一次，列表里显示的就是新标签。 */
+function handleTagsSaved() {
+  for (const library of localStore.libraries) {
+    void localStore.rescanLibrary(library.id);
+  }
+}
+
 const handleLocate = () => {
   songListRef.value?.scrollToActive?.();
 };
 
 const contextMenuItems = computed(() => [
+  {
+    id: 'edit-tags',
+    label: '编辑标签',
+    onSelect: (song: Song) => {
+      const filePath = String(song.audioUrl ?? '');
+      if (filePath) openTagEditor([filePath]);
+    },
+  },
   {
     id: 'remove-local-file',
     label: '从本地音乐移除',
@@ -171,6 +199,15 @@ onMounted(() => {
                 </span>
               </div>
               <div class="flex items-center gap-2">
+                <Button
+                  variant="unstyled"
+                  size="none"
+                  class="song-batch-btn"
+                  :tooltip="`批量编辑当前的 ${displayedSongs.length} 首`"
+                  @click="openTagEditor(displayedSongs.map((song) => String(song.audioUrl ?? '')))"
+                >
+                  批量编辑
+                </Button>
                 <div class="relative">
                   <input
                     v-model="searchQuery"
@@ -188,9 +225,9 @@ onMounted(() => {
                 <Button
                   variant="unstyled"
                   size="none"
-                  @click="handleLocate"
                   class="song-locate-btn p-2 rounded-lg"
                   tooltip="定位当前播放"
+                  @click="handleLocate"
                 >
                   <Icon :icon="iconCurrentLocation" width="16" height="16" />
                 </Button>
@@ -261,6 +298,12 @@ onMounted(() => {
       </div>
     </div>
   </PageScrollContainer>
+
+  <TagEditorDialog
+    v-model:open="tagEditorOpen"
+    :file-paths="tagEditorPaths"
+    @saved="handleTagsSaved"
+  />
 </template>
 
 <style scoped>
@@ -274,5 +317,21 @@ onMounted(() => {
 .song-search-input:focus {
   border-color: var(--color-primary);
   background-color: var(--bg-card);
+}
+
+/* 批量编辑：和搜索框同高，避免吊在行里显眼 */
+.song-batch-btn {
+  height: 36px;
+  padding: 0 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background-color: var(--bg-info-card);
+  white-space: nowrap;
+}
+.song-batch-btn:hover {
+  color: var(--text-main);
+  border-color: var(--color-primary);
 }
 </style>

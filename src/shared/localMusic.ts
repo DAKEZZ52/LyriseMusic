@@ -95,3 +95,41 @@ export const LOCAL_AUDIO_EXTENSIONS = [
   'wma',
   'wv',
 ];
+
+/* ───────────── 标签编辑 ───────────── */
+
+/** 本地文件的标签快照，供编辑界面回填。 */
+export interface LocalTagSnapshot {
+  filePath: string;
+  title: string;
+  artist: string;
+  album: string;
+  year?: number;
+  track?: number;
+  genre: string;
+  duration?: number;
+  /** 封面 dataURL，用于界面预览；没有封面时为空。 */
+  coverDataUrl?: string;
+}
+
+/** 一次标签修改。字段为 undefined 表示保持原值，不是清空。 */
+export interface LocalTagUpdate {
+  filePath: string;
+  title?: string;
+  artist?: string;
+  album?: string;
+  year?: number;
+  track?: number;
+  genre?: string;
+  /** 本地图片的绝对路径，指定则替换封面。 */
+  coverPath?: string;
+  /** 传 true 表示移除内嵌封面。 */
+  clearCover?: boolean;
+}
+
+/** 单文件写入结果。批量时逐个返回，个别失败不影响其它。 */
+export interface LocalTagWriteResult {
+  filePath: string;
+  ok: boolean;
+  error?: string;
+}

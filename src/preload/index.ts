@@ -43,6 +43,9 @@ import type {
   LocalAudioFile,
   LocalMusicAddFilesResult,
   LocalMusicLibrary,
+  LocalTagSnapshot,
+  LocalTagUpdate,
+  LocalTagWriteResult,
 } from '../shared/localMusic';
 import {
   SCOREFLOW_IPC_CHANNELS,
@@ -447,6 +450,14 @@ contextBridge.exposeInMainWorld('electron', {
       invokeWithPlainPayload<boolean>('local-music:remove-files', filePaths),
     fileExists: (filePath: string) =>
       invokeWithPlainPayload<boolean>('local-music:file-exists', filePath),
+    readTags: (filePaths: string[]) =>
+      invokeWithPlainPayload<{
+        snapshots: LocalTagSnapshot[];
+        errors: LocalTagWriteResult[];
+      }>('local-music:read-tags', filePaths),
+    writeTags: (updates: LocalTagUpdate[]) =>
+      invokeWithPlainPayload<LocalTagWriteResult[]>('local-music:write-tags', updates),
+    pickCover: () => invokeWithPlainPayload<string | null>('local-music:pick-cover'),
   },
   // 人声分离：模型可独立下载（在分离模型区单独触发）；分离后自动写入已设置的保存位置。
   separator: {

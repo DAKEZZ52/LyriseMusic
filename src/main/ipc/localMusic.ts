@@ -7,19 +7,22 @@
  *         再次启动无需重新全量扫描。
  *       - 扫描：复用 localMusic.ts 的扫描与元数据解析（并发池解析元数据）。
  */
-import { app, dialog } from 'electron';
+import { app, BrowserWindow, dialog } from 'electron';
 import fs from 'fs/promises';
 import path from 'path';
 import crypto from 'crypto';
 import { ipcRegistry } from './registry';
 import { readLocalAudioFile, scanLocalAudioFiles } from '../localMusic';
 import { MetadataWriter } from '../download/MetadataWriter';
+import { readTagSnapshots, writeTagUpdates } from '../media/tagEditor';
 import { session } from 'electron';
 import type { DownloadSongMeta } from '../../shared/download';
 import type {
   LocalAudioFile,
   LocalMusicAddFilesResult,
   LocalMusicLibrary,
+  LocalTagUpdate,
+  LocalTagWriteResult,
 } from '../../shared/localMusic';
 import { LOCAL_SINGLES_LIBRARY_ID } from '../../shared/localMusic';
 import { LOCAL_AUDIO_EXTENSIONS } from '../../shared/localMusic';
@@ -330,6 +333,49 @@ export function registerLocalMusicHandlers(): void {
       }
     },
   );
+
+  /** 读标签快照：编辑界面回填用。 */
+  ipcRegistry.registerHandler('local-music:read-tags', async (_event, filePaths: string[]) => {
+    const targets = (Array.isArray(filePaths) ? filePaths : [])
+      .map((item) => path.resolve(String(item || '').trim()))
+      .filter(Boolean)
+      .slice(0, 500);
+    if (targets.length === 0) return { snapshots: [], errors: [] };
+    return readTagSnapshots(targets);
+  });
+
+  /** 写标签：批量提交，逐个返回结果。 */
+  ipcRegistry.registerHandler(
+    'local-music:write-tags',
+    async (_event, updates: LocalTagUpdate[]): Promise<LocalTagWriteResult[]> => {
+      const list = (Array.isArray(updates) ? updates : []).filter(
+        (item) => item && typeof item.filePath === 'string' && item.filePath.trim(),
+      );
+      if (list.length === 0) return [];
+      if (list.length > 500) throw new Error('单次最多修改 500 个文件');
+      const normalized = list.map((item) => ({
+        ...item,
+        filePath: path.resolve(item.filePath.trim()),
+        coverPath: item.coverPath ? path.resolve(item.coverPath.trim()) : undefined,
+      }));
+      return writeTagUpdates(normalized);
+    },
+  );
+
+  /** 选一张本地图片作为封面，返回绝对路径。 */
+  ipcRegistry.registerHandler('local-music:pick-cover', async (event) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    const options: Electron.OpenDialogOptions = {
+      title: '选择封面图片',
+      properties: ['openFile'],
+      filters: [{ name: '图片', extensions: ['jpg', 'jpeg', 'png', 'webp'] }],
+    };
+    const result = window
+      ? await dialog.showOpenDialog(window, options)
+      : await dialog.showOpenDialog(options);
+    if (result.canceled || !result.filePaths[0]) return null;
+    return result.filePaths[0];
+  });
 }
 
 /** 供渲染层/其他模块读取单文件元数据（如本地封面后续扩展）。 */

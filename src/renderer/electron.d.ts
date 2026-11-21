@@ -21,7 +21,13 @@ import type {
   SeparatorOutput,
   SeparatorResult,
 } from '../shared/separator';
-import type { LocalMusicAddFilesResult, LocalMusicLibrary } from '../shared/localMusic';
+import type {
+  LocalMusicAddFilesResult,
+  LocalMusicLibrary,
+  LocalTagSnapshot,
+  LocalTagUpdate,
+  LocalTagWriteResult,
+} from '../shared/localMusic';
 import type {
   ScoreCacheChange,
   ScoreCacheEntry,
@@ -289,6 +295,12 @@ export interface IElectronAPI {
     }>;
     removeFiles: (filePaths: string[]) => Promise<boolean>;
     fileExists: (filePath: string) => Promise<boolean>;
+    readTags: (filePaths: string[]) => Promise<{
+      snapshots: LocalTagSnapshot[];
+      errors: LocalTagWriteResult[];
+    }>;
+    writeTags: (updates: LocalTagUpdate[]) => Promise<LocalTagWriteResult[]>;
+    pickCover: () => Promise<string | null>;
   };
   diagnostics?: {
     getMemory: (label?: string) => Promise<DiagnosticsMemorySnapshot>;
