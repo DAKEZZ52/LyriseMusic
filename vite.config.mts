@@ -157,8 +157,8 @@ export default defineConfig({
     watch: {
       ignored: ['**/.planning/**', '**/.vite-cache/**'],
     },
-    // 启动时在后台预编译首屏与常用页面，避免第一次点进去现场编译导致的「卡一会」。
-    // 语聊房、扒谱、人声分离这些重页面不预热：dev 下编译量大，而且不是高频入口。
+    // 只预热首屏真正要走的链路。之前列了 21 个页面，启动瞬间一起编译反而
+    // 跟首屏抢 CPU（实测 entry-ready 从 1s 级掉到 10.8s），其余页面保持按需编译。
     warmup: {
       clientFiles: [
         './src/renderer/main.ts',
@@ -167,21 +167,6 @@ export default defineConfig({
         './src/renderer/layouts/MainLayout.vue',
         './src/renderer/views/Loading.vue',
         './src/renderer/views/Home.vue',
-        './src/renderer/views/Search.vue',
-        './src/renderer/views/Favorites.vue',
-        './src/renderer/views/History.vue',
-        './src/renderer/views/Ranking.vue',
-        './src/renderer/views/Explore.vue',
-        './src/renderer/views/RecommendSongs.vue',
-        './src/renderer/views/Cloud.vue',
-        './src/renderer/views/LocalMusic.vue',
-        './src/renderer/views/Download.vue',
-        './src/renderer/views/Settings.vue',
-        './src/renderer/views/Profile.vue',
-        './src/renderer/views/details/PlaylistDetail.vue',
-        './src/renderer/views/details/SongDetail.vue',
-        './src/renderer/views/details/AlbumDetail.vue',
-        './src/renderer/views/lyric/LyricPage.vue',
       ],
     },
   },
