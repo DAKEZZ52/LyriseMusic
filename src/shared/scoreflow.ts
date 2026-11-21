@@ -3,7 +3,7 @@
  * 文件：scoreflow.ts
  * 描述：把音频转成简谱（音符/时值/小节/和弦/歌词逐字对齐），
  *      引擎是本地 Python 侧车（ScoreFlow），不走云端。
- * 版权：Copyright © 2026 Dake（知之Dake）. All Rights Reserved.
+ * 版权：Copyright © 2026 Koason. All Rights Reserved.
  */
 
 /** 简谱上的一个音（含休止）。 */

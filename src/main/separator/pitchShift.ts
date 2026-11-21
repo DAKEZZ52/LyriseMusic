@@ -4,7 +4,7 @@
  * 描述：保持时长的音高移位（变调/升降 Key），供分离输出按所选调生成。
  *       底层使用 soundtouchjs（SoundTouch 算法，按立体声帧 interleave 处理）：
  *         pitchSemitones = 半音偏移，tempo = 1 保持时长。
- * 版权：Copyright © 2026 Dake（知之Dake）. All Rights Reserved.
+ * 版权：Copyright © 2026 Koason. All Rights Reserved.
  */
 
 import { SoundTouch } from 'soundtouchjs';

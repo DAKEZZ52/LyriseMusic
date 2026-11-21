@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * LyriseMusic - 通用图标渲染组件
- * 作者：知之（DAKE知之）
+ * 作者：Koason
  * 说明：随插件系统精简后保留，负责标题栏等位置的图标渲染。
  */
 import { computed } from 'vue';

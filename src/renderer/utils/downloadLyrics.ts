@@ -1,11 +1,11 @@
 /**
  * LyriseMusic 下载歌词收集模块
- * 作者：知之Dake
+ * 作者：Koason
  * 文件：downloadLyrics.ts
  * 描述：为下载任务收集 LRC 歌词文本，直接调用歌词搜索 / 详情 API，不经过歌词 store，
  *      因此不会改动全局播放歌词与候选弹窗状态（无副作用）。
  *      查找顺序：① 酷狗 hash 精确匹配（man=no 取最佳候选）；② 歌名兜底搜索（getKugouLyric）。
- * 版权：Copyright © 2026 Dake（知之Dake）. All Rights Reserved.
+ * 版权：Copyright © 2026 Koason. All Rights Reserved.
  */
 import { getLyric, searchLyric } from '@/api/music';
 import { getKugouLyric } from '@/utils/lyric';

@@ -1,6 +1,6 @@
 /**
  * DakeMusic 聊天房后端
- * 作者：知之Dake
+ * 作者：Koason
  * 文件：index.js
  * 描述：用户系统、房间管理、LiveKit语音、网页版托管 + 房间消息/麦位/WebSocket
  */

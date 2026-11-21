@@ -1,10 +1,10 @@
 /**
  * LyriseMusic 下载任务模块
- * 作者：知之Dake
+ * 作者：Koason
  * 文件：DownloadTask.ts
  * 描述：单个歌曲下载任务的执行体——基于 Electron net 流式下载（走代理/重定向），
  *      支持 HTTP Range 断点续传、暂停/继续、失败自动重试（多候选 URL + 指数退避）、进度节流
- * 版权：Copyright © 2026 Dake（知之Dake）. All Rights Reserved.
+ * 版权：Copyright © 2026 Koason. All Rights Reserved.
  * 设计参考：lx-music-desktop（https://github.com/lyswhut/lx-music-desktop），Apache-2.0 License
  */
 import fs from 'node:fs';

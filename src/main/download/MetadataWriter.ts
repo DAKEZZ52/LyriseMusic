@@ -1,13 +1,13 @@
 /**
  * LyriseMusic 元数据写入模块
- * 作者：知之Dake
+ * 作者：Koason
  * 文件：MetadataWriter.ts
  * 描述：在歌曲下载完成后，向音频文件内嵌写入元数据——标题 / 歌手 / 专辑 / 封面 / 歌词。
  *      按格式分派两条实现：
  *        · MP3  走 node-id3（纯 JavaScript / CommonJS，无原生与 WASM 依赖，最稳妥）；
  *        · 其余（FLAC / M4A / OGG / WAV 等）走 taglib-wasm（TagLib 的 WASM 构建，全格式支持）。
  *      元数据写入属于"附加增强"：即使失败也不应改变文件已下载完成的事实，由调用方捕获并仅记录。
- * 版权：Copyright © 2026 Dake（知之Dake）. All Rights Reserved.
+ * 版权：Copyright © 2026 Koason. All Rights Reserved.
  * 设计参考：lx-music-desktop（https://github.com/lyswhut/lx-music-desktop），Apache-2.0 License
  */
 import { net, type Session } from 'electron';

@@ -4,7 +4,7 @@
  * 描述：把「入队 / 串行执行 / 停止 / 清理」包成 ref 状态，真正的分离动作由调用方
  *      以闭包形式注入（页面里复用现有的 start→save 流程）。
  *      串行执行：主进程只有一个结果暂存槽位，同时跑两首会互相覆盖并翻倍占内存。
- * 版权：Copyright © 2026 Dake（知之Dake）. All Rights Reserved.
+ * 版权：Copyright © 2026 Koason. All Rights Reserved.
  */
 import { computed, ref } from 'vue';
 import {

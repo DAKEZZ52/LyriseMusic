@@ -1,6 +1,6 @@
 <!--
   LyriseMusic 语聊房模块
-  作者：知之Dake
+  作者：Koason
   文件：ChatRoom.vue
   描述：语聊房主界面 - 左侧成员栏 + 右侧聊天/歌词区 + 底部控制栏
 -->
@@ -787,7 +787,7 @@ onUnmounted(() => {
 
 <template>
   <div class="cr-root">
-    <!-- LyriseMusic 语聊房模块 - 作者：知之Dake -->
+    <!-- LyriseMusic 语聊房模块 - 作者：Koason -->
     <ChatRoomBackground />
     <!-- 顶部栏 -->
     <ChatRoomTopbar

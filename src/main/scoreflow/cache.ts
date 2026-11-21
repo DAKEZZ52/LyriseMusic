@@ -3,7 +3,7 @@
  * 文件：cache.ts
  * 描述：把扒谱结果按「歌曲 / 本地文件」落盘，配合 fs.watch 做热更新——
  *      用户手动改缓存里的 score json，界面立刻反映，不用重启或重跑引擎。
- * 版权：Copyright © 2026 Dake（知之Dake）. All Rights Reserved.
+ * 版权：Copyright © 2026 Koason. All Rights Reserved.
  */
 import { app } from 'electron';
 import fs from 'node:fs';

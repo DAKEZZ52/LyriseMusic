@@ -1,6 +1,6 @@
 <!--
  * LyriseMusic - 下载统计面板
- * 作者：知之（DAKE知之）
+ * 作者：Koason
  * 版权：© 2026 LyriseMusic. All rights reserved.
  * 描述：下载统计四格（全部任务/下载中/已完成/失败），只渲染数据区不画外壳，
  *      由页面壳与「下载设置」共用一个分区卡。只读 store 数据。

@@ -1,6 +1,6 @@
 <!--
   LyriseMusic 语聊房模块
-  作者：知之Dake
+  作者：Koason
   文件：ChatRoomFloating.vue
   描述：悬浮窗组件 - 可拖动的悬浮房间卡片 / 收起态小圆钮
 -->

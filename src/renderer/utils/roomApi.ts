@@ -1,6 +1,6 @@
 /**
  * LyriseMusic 语聊房模块
- * 作者：知之Dake
+ * 作者：Koason
  * 文件：roomApi.ts
  * 描述：房间管理后端 API 封装 - JWT 会话鉴权 + 内存缓存
  */

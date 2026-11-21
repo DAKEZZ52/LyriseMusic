@@ -1,6 +1,6 @@
 /**
  * LyriseMusic - 设置备份 IPC 注册
- * 作者：知之（DAKE知之）
+ * 作者：Koason
  * 说明：仅注册应用设置备份的导出 / 检查 / 导入通道，插件备份 API 已移除。
  */
 import type {

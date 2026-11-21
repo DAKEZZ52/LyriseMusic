@@ -1,10 +1,10 @@
 /**
  * LyriseMusic 下载状态管理模块
- * 作者：知之Dake
+ * 作者：Koason
  * 文件：download.ts
  * 描述：渲染层下载 store——复用播放地址解析（resolveAudioUrl）得到可下载地址，
  *      管理任务/设置状态、接收主进程事件并提供暂停/继续/取消等操作
- * 版权：Copyright © 2026 Dake（知之Dake）. All Rights Reserved.
+ * 版权：Copyright © 2026 Koason. All Rights Reserved.
  */
 import { defineStore } from 'pinia';
 import {

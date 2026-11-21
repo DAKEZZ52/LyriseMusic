@@ -1,10 +1,10 @@
 /**
  * LyriseMusic 下载管理器模块
- * 作者：知之Dake
+ * 作者：Koason
  * 文件：DownloadManager.ts
  * 描述：歌曲下载任务的全局管理——任务表、并发控制与等待队列、增删/暂停/继续/取消/重试、
  *      任务快照持久化（KV）与重启恢复、向渲染层广播事件
- * 版权：Copyright © 2026 Dake（知之Dake）. All Rights Reserved.
+ * 版权：Copyright © 2026 Koason. All Rights Reserved.
  * 设计参考：lx-music-desktop（https://github.com/lyswhut/lx-music-desktop），Apache-2.0 License
  */
 import type { BrowserWindow, Session } from 'electron';

@@ -1,6 +1,6 @@
 /**
  * LyriseMusic 语聊房模块
- * 作者：知之Dake
+ * 作者：Koason
  * 文件：chatRoom.ts (store)
  * 描述：语聊房状态管理 - 房间列表/成员/消息/LiveKit 连接
  */
@@ -58,7 +58,7 @@ export const useChatRoomStore = defineStore('chatRoom', () => {
   const ownerIdentity = ref('');
   // LyriseMusic: 房间真房主（后端认定，不被根超管进房覆盖），专用于歌词/播放源判断
   const isRoomHost = ref(false);
-  /** 全局超级管理员（Dake），进别人房间不自动上麦、不显示房主标签 */
+  /** 全局超级管理员（Koason），进别人房间不自动上麦、不显示房主标签 */
   const isSuperAdmin = ref(false);
   /** LyriseMusic: 根超管（环境变量写死），可任免其他超管，且自己不能被取消 */
   const isRootSuper = ref(false);

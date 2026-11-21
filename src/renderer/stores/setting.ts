@@ -217,7 +217,7 @@ export const useSettingStore = defineStore('setting', {
     customBackgroundImage: '',
     customBackgroundOverlay: 40,
     customBackgroundTextColor: 'auto' as 'auto' | 'dark' | 'light',
-    // LyriseMusic 语聊房模块 - 作者：知之Dake
+    // LyriseMusic 语聊房模块 - 作者：Koason
     // 描述：语聊房自定义背景图设置
     chatroomBackgroundImage: '',
     chatroomBackgroundOverlay: 30,
@@ -814,7 +814,7 @@ export const useSettingStore = defineStore('setting', {
     clearCustomBackground() {
       this.customBackgroundImage = '';
     },
-    // LyriseMusic 语聊房模块 - 作者：知之Dake
+    // LyriseMusic 语聊房模块 - 作者：Koason
     // 描述：语聊房背景相关方法
     setChatroomBackgroundImage(base64: string) {
       this.chatroomBackgroundImage = base64;

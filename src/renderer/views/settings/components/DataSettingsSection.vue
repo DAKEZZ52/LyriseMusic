@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * LyriseMusic - 数据设置（备份与恢复 / 日志 / 清除数据）
- * 作者：知之（DAKE知之）
+ * 作者：Koason
  * 说明：随插件系统剔除后精简为纯设置备份（本地文件）。
  */
 import { computed, ref } from 'vue';

@@ -1,6 +1,6 @@
 /**
  * LyriseMusic 本地音乐库状态管理模块
- * 作者：知之（DAKE知之）
+ * 作者：Koason
  * 版权：© 2026 LyriseMusic. All rights reserved.
  * 描述：渲染层本地音乐 store——管理已添加的本地文件夹曲库与单曲库
  *      （列表/曲目缓存/扫描状态），并将本地文件转换为 Song 模型。

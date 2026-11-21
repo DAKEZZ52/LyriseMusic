@@ -3,7 +3,7 @@
  * 文件：index.ts
  * 描述：注册扒谱相关 IPC（引擎探测、开始扒谱、取消、导出 JSON），
  *      引擎是本地 Python 侧车，全部离线运行。
- * 版权：Copyright © 2026 Dake（知之Dake）. All Rights Reserved.
+ * 版权：Copyright © 2026 Koason. All Rights Reserved.
  */
 import { dialog, shell } from 'electron';
 import fs from 'node:fs';

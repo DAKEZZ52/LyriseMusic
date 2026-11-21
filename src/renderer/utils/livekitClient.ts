@@ -1,6 +1,6 @@
 /**
  * LyriseMusic 语聊房模块
- * 作者：知之Dake
+ * 作者：Koason
  * 文件：livekitClient.ts
  * 描述：LiveKit 音视频客户端封装 - 房间连接/成员管理/消息收发/设备管理
  */

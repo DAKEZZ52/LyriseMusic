@@ -1,11 +1,11 @@
 <!--
   LyriseMusic 下载管理视图（页面壳，云盘页风格）
-  作者：知之（DAKE知之）
+  作者：Koason
   文件：Download.vue
   描述：收缩头部（SliverHeader）+ 顶部操作行（DownloadActionBar）+
        左侧下载统计（DownloadStatsPanel）+ 任务表格（DownloadTaskList，含列头）+
        下载设置分区卡（DownloadSettingsPanel）。本页为编排容器，各功能区均为独立组件。
-  版权：Copyright © 2026 Dake（知之Dake）. All Rights Reserved.
+  版权：Copyright © 2026 Koason. All Rights Reserved.
 -->
 <script setup lang="ts">
 defineOptions({ name: 'download' });

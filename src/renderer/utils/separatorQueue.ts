@@ -4,7 +4,7 @@
  * 描述：分离任务队列的状态、统计与推进规则，不依赖 Vue / Electron，便于单测。
  *      主进程的分离结果只有一个暂存槽位（pendingStems），因此队列必须串行推进：
  *      一项 start→save 完整结束后才处理下一项，绝不同时跑两首。
- * 版权：Copyright © 2026 Dake（知之Dake）. All Rights Reserved.
+ * 版权：Copyright © 2026 Koason. All Rights Reserved.
  */
 
 /** 队列任务状态。 */

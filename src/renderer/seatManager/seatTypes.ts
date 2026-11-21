@@ -1,10 +1,10 @@
 /*
  * LyriseMusic 座位管理模块
- * 作者：知之Dake
+ * 作者：Koason
  * 文件：seatTypes.ts
  * 描述：座位/麦位类型定义与座位协议常量
  * 规则：6 个小座位谁都能直接坐；1 个大主座（主持位）需向房主申请，房主同意后才能上去
- * 版权：Copyright © 2026 Dake（知之Dake）. All Rights Reserved.
+ * 版权：Copyright © 2026 Koason. All Rights Reserved.
  */
 
 /** 大主座 ID（申请制） */

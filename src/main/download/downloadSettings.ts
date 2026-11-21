@@ -1,9 +1,9 @@
 /**
  * LyriseMusic 下载设置模块
- * 作者：知之Dake
+ * 作者：Koason
  * 文件：downloadSettings.ts
  * 描述：下载设置的读取、规整与持久化（KV），以及默认保存目录的解析
- * 版权：Copyright © 2026 Dake（知之Dake）. All Rights Reserved.
+ * 版权：Copyright © 2026 Koason. All Rights Reserved.
  */
 import { app } from 'electron';
 import path from 'node:path';

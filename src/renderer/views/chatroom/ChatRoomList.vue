@@ -1,6 +1,6 @@
 <!--
   LyriseMusic 语聊房模块
-  作者：知之Dake
+  作者：Koason
   文件：ChatRoomList.vue
   描述：房间列表页 - 房间卡片展示 + 创建/编辑/加入房间
 -->
@@ -441,7 +441,7 @@ function isDefaultCover(cover?: string): boolean {
   return !cover || cover === DEFAULT_COVER_KEY;
 }
 
-// LyriseMusic 语聊房模块 - 作者：知之Dake
+// LyriseMusic 语聊房模块 - 作者：Koason
 // 描述：从 localStorage 读取我的头像（确保即使不在房间里也能显示）
 const localMyAvatar = ref(localStorage.getItem('chatroom_avatarImage') || '');
 
@@ -570,7 +570,7 @@ async function onEditCoverSelected(e: Event) {
 
 <template>
   <div class="crl-page relative min-h-[calc(100vh-120px)]">
-    <!-- LyriseMusic 语聊房模块 - 作者：知之Dake -->
+    <!-- LyriseMusic 语聊房模块 - 作者：Koason -->
     <!-- 描述：自定义背景层 - 铺满整个内容区域 -->
     <div
       v-if="settingStore.chatroomBackgroundImage"
@@ -619,7 +619,7 @@ async function onEditCoverSelected(e: Event) {
               <input
                 v-model="loginNameInput"
                 class="crl-input w-full px-3 py-2 rounded-lg border"
-                :placeholder="authMode === 'register' ? '输入账号，如 Dake' : '输入账号或昵称'"
+                :placeholder="authMode === 'register' ? '输入账号，如 Koason' : '输入账号或昵称'"
                 @keyup.enter="handleAuth"
               />
             </div>

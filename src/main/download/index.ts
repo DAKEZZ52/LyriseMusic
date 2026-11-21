@@ -1,9 +1,9 @@
 /**
  * LyriseMusic 下载 IPC 模块
- * 作者：知之Dake
+ * 作者：Koason
  * 文件：index.ts
  * 描述：注册歌曲下载相关的 IPC 处理器（创建/列表/暂停/继续/取消/重试/删除、设置、选目录、打开文件）
- * 版权：Copyright © 2026 Dake（知之Dake）. All Rights Reserved.
+ * 版权：Copyright © 2026 Koason. All Rights Reserved.
  */
 import { dialog } from 'electron';
 import { ipcRegistry } from '../ipc/registry';

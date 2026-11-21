@@ -1,10 +1,10 @@
 <!--
   LyriseMusic 座位管理模块
-  作者：知之Dake
+  作者：Koason
   文件：SeatStage.vue
   描述：座位/麦位舞台 UI - 1 个大主座（上）+ 6 个小座位（双排 3+3）
     小座位点空座直接坐；主座非房主点击为向房主申请，房主在审批卡片上同意/拒绝
-  版权：Copyright © 2026 Dake（知之Dake）. All Rights Reserved.
+  版权：Copyright © 2026 Koason. All Rights Reserved.
 -->
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from 'vue';

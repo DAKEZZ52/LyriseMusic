@@ -1,6 +1,6 @@
 <!--
  * LyriseMusic - 下载设置组件
- * 作者：知之（DAKE知之）
+ * 作者：Koason
  * 版权：© 2026 LyriseMusic. All rights reserved.
  * 描述：下载设置分区内容：保存目录（打开/更改）、同时下载数（步进 1~8）、
  *      写入歌曲信息开关，设置读写直接走 download store。

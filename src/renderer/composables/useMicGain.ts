@@ -1,6 +1,6 @@
 /**
  * LyriseMusic 语聊房模块
- * 作者：知之Dake
+ * 作者：Koason
  * 文件：useMicGain.ts
  * 描述：麦克风输入增益链（模块级单例）- 麦克风→GainNode→LocalAudioTrack→LiveKit，
  *       房间内页与悬浮窗共用同一套，避免多轨道冲突；真正退房才销毁。

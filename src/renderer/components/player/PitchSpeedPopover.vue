@@ -4,7 +4,7 @@
  * 文件：PitchSpeedPopover.vue
  * 描述：升降调支持 ABC 调快速定位（以 C 为基准的 12 个调 + 原调，点击即跳转），
  *       滑块范围为 -12 ~ +12 半音（一个八度）；倍速播放保持原交互。
- * 版权：Copyright © 2026 Dake（知之Dake）. All Rights Reserved.
+ * 版权：Copyright © 2026 Koason. All Rights Reserved.
  */
 import { computed, ref } from 'vue';
 import { SliderRoot, SliderTrack, SliderRange, SliderThumb } from 'reka-ui';

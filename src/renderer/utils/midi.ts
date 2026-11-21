@@ -7,7 +7,7 @@
  *       tick = 秒 × (BPM / 60) × PPQ
  *       扒谱引擎的速度恒定（首末锚点核对过 216.69s / 245.5 拍 = 0.8826s/拍），
  *       用平均 BPM 线性换算不会漂。
- * 版权：Copyright © 2026 Dake（知之Dake）. All Rights Reserved.
+ * 版权：Copyright © 2026 Koason. All Rights Reserved.
  */
 import type { ScoreChordSpan, ScoreDoc } from '../../shared/scoreflow';
 

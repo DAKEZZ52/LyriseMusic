@@ -1,9 +1,9 @@
 /**
  * LyriseMusic 下载模块（共享类型）
- * 作者：知之Dake
+ * 作者：Koason
  * 文件：download.ts
  * 描述：歌曲下载任务的状态机、任务快照、创建请求、下载设置与 IPC 通道常量（主进程与渲染层共用）
- * 版权：Copyright © 2026 Dake（知之Dake）. All Rights Reserved.
+ * 版权：Copyright © 2026 Koason. All Rights Reserved.
  */
 
 /**

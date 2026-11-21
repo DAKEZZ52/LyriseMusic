@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * LyriseMusic 人声分离 - 状态面板组件
- * 作者：知之（DAKE知之）
+ * 作者：Koason
  * 版权：© 2026 LyriseMusic. All rights reserved.
  * 描述：分离/保存进度面板、已保存结果面板、错误提示面板，
  *      纯展示组件（按传入状态渲染对应面板）。

@@ -1,6 +1,6 @@
 <!--
  * LyriseMusic - 人声分离队列面板
- * 作者：知之（DAKE知之）
+ * 作者：Koason
  * 版权：© 2026 LyriseMusic. All rights reserved.
  * 描述：展示分离队列（等待中 / 分离中 / 已完成 / 失败）与统计，
  *      提供开始、停止、清理已完成三个操作；真正的执行由页面通过 composable 注入。

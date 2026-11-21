@@ -1,7 +1,7 @@
 <!--
  * LyriseMusic 扒谱页
  * 文件：Score.vue
- * 作者：知之（DAKE知之）
+ * 作者：Koason
  * 版权：© 2026 LyriseMusic. All rights reserved.
  * 描述：把当前播放的歌（或本地文件）交给本地 ScoreFlow 引擎，转成简谱：
  *      音符/时值/小节/和弦/歌词逐字对齐。左侧是谱面画布（可点选编辑），

@@ -17,7 +17,7 @@ refresh-site.py — LyriseMusic 官网静态版本刷新脚本
     3. 把版本字段直接写死在 scripts/dl-index.html
     4. 页内保留原有 JS 作为兜底（版本一致时无感知）
 
-作者：知之 Dake | QQ: 983064062
+作者：Koason | QQ: 983064062
 """
 
 import json

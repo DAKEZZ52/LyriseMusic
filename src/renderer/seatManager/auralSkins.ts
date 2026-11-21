@@ -1,6 +1,6 @@
 /*!
  * LyriseMusic 语聊房模块
- * 作者：知之Dake
+ * 作者：Koason
  * 文件：auralSkins.ts
  * 描述：麦位说话声波皮肤配置 - 用户可切换的说话时头像周围装饰
  */

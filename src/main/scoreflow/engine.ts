@@ -3,7 +3,7 @@
  * 文件：engine.ts
  * 描述：定位并调用本地 ScoreFlow 引擎（Python 侧车或打包后的可执行文件），
  *      负责写临时 WAV、转发进度、读回 score.json、清理临时目录。
- * 版权：Copyright © 2026 Dake（知之Dake）. All Rights Reserved.
+ * 版权：Copyright © 2026 Koason. All Rights Reserved.
  */
 import { app } from 'electron';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';

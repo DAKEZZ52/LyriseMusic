@@ -1,9 +1,9 @@
 <!--
   LyriseMusic 房间点歌台
-  作者：知之Dake
+  作者：Koason
   文件：SongRequestPanel.vue
   描述：房间内搜索点歌、队列展示、DJ切歌/删歌
-  版权：Copyright © 2026 Dake（知之Dake）. All Rights Reserved.
+  版权：Copyright © 2026 Koason. All Rights Reserved.
 -->
 <template>
   <div class="srp-root">
@@ -82,10 +82,10 @@
 <script setup lang="ts">
 /**
  * LyriseMusic 房间点歌台逻辑
- * 作者：知之Dake
+ * 作者：Koason
  * 文件：SongRequestPanel.vue
  * 描述：搜索结果统一用 mapSearchSong 规整为标准 Song，再点歌/缓存/播放
- * 版权：Copyright © 2026 Dake（知之Dake）. All Rights Reserved.
+ * 版权：Copyright © 2026 Koason. All Rights Reserved.
  */
 import { ref, computed, toRaw, onBeforeUnmount } from 'vue';
 import Tooltip from '@/components/ui/Tooltip.vue';

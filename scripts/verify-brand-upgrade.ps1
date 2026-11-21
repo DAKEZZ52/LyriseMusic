@@ -31,7 +31,7 @@
   powershell -ExecutionPolicy Bypass -File scripts\verify-brand-upgrade.ps1 -Force
 
 .NOTES
-  作者：知之 Dake | 仅在本机执行，不联网。
+  作者：Koason | 仅在本机执行，不联网。
 #>
 param(
   [string]$OldInstaller = 'release\DakeMusic-2.4.8.exe',

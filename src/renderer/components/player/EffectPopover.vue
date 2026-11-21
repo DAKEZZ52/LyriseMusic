@@ -1,6 +1,6 @@
 /** * LyriseMusic 播放控制 - 音效与均衡器弹层 * 文件：EffectPopover.vue *
-描述：音效选择、均衡器与在线音效管理，触发按钮带音效徽标 * 作者：知之（DAKE知之） * 版权：© 2026
-LyriseMusic. All rights reserved. */
+描述：音效选择、均衡器与在线音效管理，触发按钮带音效徽标 * 作者：Koason * 版权：© 2026 LyriseMusic.
+All rights reserved. */
 <script setup lang="ts">
 import Tooltip from '@/components/ui/Tooltip.vue';
 

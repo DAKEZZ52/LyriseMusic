@@ -1255,7 +1255,7 @@
     setText('#topRoomName', '深夜电台');
     setText('#roomName', '深夜电台');
     setText('#topOnline', state.members.length);
-    setText('#roomOwner', '房主 · 知之Dake');
+    setText('#roomOwner', '房主 · Koason');
     setText('#roomIdText', 'ID 10086');
     const roomIdText = $('#roomIdText');
     if (roomIdText) roomIdText.title = '10086';
@@ -1470,7 +1470,7 @@
      登录 / 选房
      ------------------------------------------------------- */
   const updateEntryUser = () => {
-    const name = state.auth?.nickname || state.auth?.name || 'Dake';
+    const name = state.auth?.nickname || state.auth?.name || 'Koason';
     setText('#entryUserName', name);
     setText('#entryApiHost', new URL(API_BASE).host);
   };

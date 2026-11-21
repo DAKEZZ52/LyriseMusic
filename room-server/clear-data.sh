@@ -1,7 +1,7 @@
 #!/bin/bash
 # ============================================================
 # DakeMusic 语聊房 - 一键清空用户与房间数据
-# 作者：知之Dake
+# 作者：Koason
 # 文件：room-server/clear-data.sh
 # 描述：备份 users.db / rooms.json 后删除，重启后自动重建空库
 # 用法：bash clear-data.sh

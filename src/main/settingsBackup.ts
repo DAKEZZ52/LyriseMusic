@@ -1,6 +1,6 @@
 /**
  * LyriseMusic - 设置备份 / 导出导入模块
- * 作者：知之（DAKE知之）
+ * 作者：Koason
  * 说明：仅备份应用设置与桌面歌词设置，插件系统已整体移除。
  */
 import { app, BrowserWindow, dialog, type OpenDialogOptions } from 'electron';

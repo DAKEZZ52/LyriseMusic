@@ -3,7 +3,7 @@
  * 文件：jianpu.ts
  * 描述：把 ScoreDoc 排成版面并画到 canvas 上。页面只负责编排，
  *      这里不碰 Vue、不碰 IPC，方便单测与复用（导出图片等）。
- * 版权：Copyright © 2026 Dake（知之Dake）. All Rights Reserved.
+ * 版权：Copyright © 2026 Koason. All Rights Reserved.
  */
 import type { ScoreChordMark, ScoreDoc, ScoreMeasure, ScoreNote } from '../../shared/scoreflow';
 

@@ -1,6 +1,6 @@
 <!--
   LyriseMusic 语聊房模块
-  作者：知之Dake
+  作者：Koason
   文件：ProfilePage.vue
   描述：个人中心页 - 头像/昵称/个人资料编辑
 -->

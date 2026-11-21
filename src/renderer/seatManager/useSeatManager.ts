@@ -1,13 +1,13 @@
 /*
  * LyriseMusic 座位管理模块
- * 作者：知之Dake
+ * 作者：Koason
  * 文件：useSeatManager.ts
  * 描述：座位/麦位状态与动作的 composable 单例
  *   - 6 个小座位：点空座直接坐，点自己离开，谁都能坐
  *   - 1 个大主座：非房主需向房主申请，房主同意后才入座；房主可直接坐、可把人请下
  * 同步：经 LiveKit DataChannel（publishSeatData / onSeatData）在全员之间实时同步；
  *   新成员加入时房主单播座位快照。
- * 版权：Copyright © 2026 Dake（知之Dake）. All Rights Reserved.
+ * 版权：Copyright © 2026 Koason. All Rights Reserved.
  */
 import { ref, computed, watch } from 'vue';
 import { getLiveKitClient } from '@/utils/livekitClient';

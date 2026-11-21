@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // LyriseMusic 关于页模块
-// 作者：知之Dake
+// 作者：Koason
 // 文件：AboutSettingsSection.vue
 // 描述：关于页 - 版本信息/更新检查/免责声明/作者信息
 import { computed } from 'vue';
