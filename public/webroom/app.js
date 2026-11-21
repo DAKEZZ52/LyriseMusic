@@ -285,7 +285,7 @@
   const SONGS = SONG_DATA.map(withLyrics);
 
   const MEMBER_DATA = [
-    { id: 'dake', name: '知之Dake', initial: '之', role: 'owner', colors: ['#fbbf24', '#f472b6'], bio: '把耳机分你一半，今晚也一起听歌。', mic: true, speaking: false },
+    { id: 'dake', name: 'Koason', initial: 'K', role: 'owner', colors: ['#fbbf24', '#f472b6'], bio: '把耳机分你一半，今晚也一起听歌。', mic: true, speaking: false },
     { id: 'xiaolu', name: '小鹿', initial: '鹿', role: 'admin', colors: ['#34d399', '#06b6d4'], bio: '今晚也要开心，禁止偷偷 emo。', mic: true, speaking: true },
     { id: 'me', name: '你', initial: '你', role: 'me', colors: ['#8a5cff', '#00beff'], bio: '正在听歌，偶尔接一句。', mic: true, speaking: false, self: true },
     { id: 'aze', name: '阿泽', initial: '泽', role: 'member', colors: ['#6366f1', '#a855f7'], bio: '低音炮选手，副歌交给我。', mic: true, speaking: false },

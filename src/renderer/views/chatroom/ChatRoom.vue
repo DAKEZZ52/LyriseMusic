@@ -1245,7 +1245,7 @@ onUnmounted(() => {
             </div>
             <div class="ads-tip">
               <div>输入：{{ adsMicLabel }} · 输出：{{ adsSpeakerLabel }}</div>
-              <div class="ads-tip-sub ok">知之呕心沥血之作</div>
+              <div class="ads-tip-sub ok">Koason 呕心沥血之作</div>
             </div>
           </div>
         </div>

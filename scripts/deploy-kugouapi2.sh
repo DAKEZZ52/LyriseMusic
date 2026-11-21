@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # DakeMusic 酷狗标准 API server（本地直连版）部署脚本
-# 作者：知之（DAKE知之）  版权：© 2026 DakeMusic
+# 作者：Koason  版权：© 2026 DakeMusic
 # 用途：部署到 /srv/kugouapi2，端口 3101（新入口 /kugouapi/，旧 /kugou 作废）
 set -e
 

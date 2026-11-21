@@ -114,7 +114,7 @@ defineProps<{
     <div class="settings-item">
       <div class="space-y-1">
         <h3 class="font-semibold">作者信息</h3>
-        <p class="text-sm text-text-secondary">知之 | QQ: 983064062</p>
+        <p class="text-sm text-text-secondary">Koason | QQ: 983064062</p>
       </div>
       <Button
         variant="unstyled"
