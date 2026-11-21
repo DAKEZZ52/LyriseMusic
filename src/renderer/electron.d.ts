@@ -22,6 +22,8 @@ import type {
   SeparatorResult,
 } from '../shared/separator';
 import type {
+  DuplicateGroup,
+  DuplicateRemoveResult,
   LocalMusicAddFilesResult,
   LocalMusicLibrary,
   LocalTagSnapshot,
@@ -301,6 +303,8 @@ export interface IElectronAPI {
     }>;
     writeTags: (updates: LocalTagUpdate[]) => Promise<LocalTagWriteResult[]>;
     pickCover: () => Promise<string | null>;
+    findDuplicates: () => Promise<DuplicateGroup[]>;
+    removeDuplicates: (filePaths: string[]) => Promise<DuplicateRemoveResult>;
   };
   diagnostics?: {
     getMemory: (label?: string) => Promise<DiagnosticsMemorySnapshot>;

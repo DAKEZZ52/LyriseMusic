@@ -7,13 +7,14 @@
  *         再次启动无需重新全量扫描。
  *       - 扫描：复用 localMusic.ts 的扫描与元数据解析（并发池解析元数据）。
  */
-import { app, BrowserWindow, dialog } from 'electron';
+import { app, BrowserWindow, dialog, shell } from 'electron';
 import fs from 'fs/promises';
 import path from 'path';
 import crypto from 'crypto';
 import { ipcRegistry } from './registry';
 import { readLocalAudioFile, scanLocalAudioFiles } from '../localMusic';
 import { MetadataWriter } from '../download/MetadataWriter';
+import { findDuplicates } from '../media/duplicateFinder';
 import { readTagSnapshots, writeTagUpdates } from '../media/tagEditor';
 import { session } from 'electron';
 import type { DownloadSongMeta } from '../../shared/download';
@@ -359,6 +360,48 @@ export function registerLocalMusicHandlers(): void {
         coverPath: item.coverPath ? path.resolve(item.coverPath.trim()) : undefined,
       }));
       return writeTagUpdates(normalized);
+    },
+  );
+
+  /** 扫描重复曲目（只读，不删文件）。 */
+  ipcRegistry.registerHandler('local-music:find-duplicates', async () => {
+    const libraries = await readLocalMusicLibraries();
+    return findDuplicates(libraries);
+  });
+
+  /** 删除重复文件：移到系统回收站，并从曲库里摘掉记录。 */
+  ipcRegistry.registerHandler(
+    'local-music:remove-duplicates',
+    async (_event, filePaths: string[]) => {
+      const targets = (Array.isArray(filePaths) ? filePaths : [])
+        .map((item) => path.resolve(String(item || '').trim()))
+        .filter(Boolean)
+        .slice(0, 500);
+      if (targets.length === 0) return { removed: 0, failed: 0, failedPaths: [] as string[] };
+
+      let removed = 0;
+      const failedPaths: string[] = [];
+      for (const target of targets) {
+        try {
+          // 走回收站而不是直接删：用户后悔还能捞回来
+          await shell.trashItem(target);
+          removed += 1;
+        } catch {
+          failedPaths.push(target);
+        }
+      }
+
+      const targetSet = new Set(targets.filter((item) => !failedPaths.includes(item)));
+      if (targetSet.size > 0) {
+        const libraries = await readLocalMusicLibraries();
+        const next = libraries.map((library) => ({
+          ...library,
+          files: library.files.filter((file) => !targetSet.has(path.resolve(file.path))),
+        }));
+        await writeLocalMusicLibraries(next);
+      }
+
+      return { removed, failed: failedPaths.length, failedPaths };
     },
   );
 

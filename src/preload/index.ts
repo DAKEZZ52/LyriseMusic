@@ -40,6 +40,8 @@ import {
   type SeparatorResult,
 } from '../shared/separator';
 import type {
+  DuplicateGroup,
+  DuplicateRemoveResult,
   LocalAudioFile,
   LocalMusicAddFilesResult,
   LocalMusicLibrary,
@@ -458,6 +460,9 @@ contextBridge.exposeInMainWorld('electron', {
     writeTags: (updates: LocalTagUpdate[]) =>
       invokeWithPlainPayload<LocalTagWriteResult[]>('local-music:write-tags', updates),
     pickCover: () => invokeWithPlainPayload<string | null>('local-music:pick-cover'),
+    findDuplicates: () => invokeWithPlainPayload<DuplicateGroup[]>('local-music:find-duplicates'),
+    removeDuplicates: (filePaths: string[]) =>
+      invokeWithPlainPayload<DuplicateRemoveResult>('local-music:remove-duplicates', filePaths),
   },
   // 人声分离：模型可独立下载（在分离模型区单独触发）；分离后自动写入已设置的保存位置。
   separator: {

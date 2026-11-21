@@ -133,3 +133,36 @@ export interface LocalTagWriteResult {
   ok: boolean;
   error?: string;
 }
+
+/* ───────────── 重复文件 ───────────── */
+
+/** 重复组里的一个文件。 */
+export interface DuplicateFile {
+  path: string;
+  libraryId: string;
+  libraryName: string;
+  name: string;
+  size: number;
+  extension: string;
+  duration?: number;
+  title: string;
+  artist: string;
+}
+
+/** 一组重复曲目。 */
+export interface DuplicateGroup {
+  /** 组展示名。 */
+  label: string;
+  /** identical = 字节级相同；same-track = 同曲不同码率。 */
+  reason: 'identical' | 'same-track';
+  /** 建议保留的路径（无损优先，其次体积大的）。 */
+  keepPath: string;
+  files: DuplicateFile[];
+}
+
+/** 删除重复文件的结果。 */
+export interface DuplicateRemoveResult {
+  removed: number;
+  failed: number;
+  failedPaths: string[];
+}

@@ -7,14 +7,27 @@
  *      组件拆分子模块，只读 store 数据，不承载列表渲染。
  -->
 <script setup lang="ts">
+import { ref } from 'vue';
 import { iconFolderOpen, iconMusic, iconRefreshCw, iconTrash } from '@/icons';
 import { useLocalMusicStore } from '@/stores/localMusic';
 import Tooltip from '@/components/ui/Tooltip.vue';
+import Button from '@/components/ui/Button.vue';
+import DuplicateFinderDialog from '@/components/localMusic/DuplicateFinderDialog.vue';
 import type { LocalMusicLibrary } from '../../../shared/localMusic';
 
 defineOptions({ name: 'LocalMusicStatsPanel' });
 
 const localStore = useLocalMusicStore();
+
+/** 重复清理弹窗开关。 */
+const dupOpen = ref(false);
+
+/** 删完重复文件后重扫，库里的曲目数才是准的。 */
+const handleDuplicatesRemoved = () => {
+  for (const library of localStore.libraries) {
+    void localStore.rescanLibrary(library.id);
+  }
+};
 
 const formatScanned = (timestamp: number): string => {
   if (!timestamp) return '暂无扫描记录';
@@ -111,7 +124,22 @@ const handleRemove = (library: LocalMusicLibrary) => {
       <div v-else class="mt-2 text-[11px] font-medium text-text-secondary/70">
         暂无曲库，点击右上角「添加文件夹」或「添加单曲」开始。
       </div>
+
+      <!-- 重复清理：只在有曲目时出现 -->
+      <div v-if="localStore.totalSongs > 0" class="dup-entry">
+        <div class="min-w-0 flex-1">
+          <div class="text-[12px] font-semibold text-text-main">重复歌曲</div>
+          <div class="text-[10px] font-medium text-text-secondary/70">
+            同一首歌存了多份时，挑出多余的清掉
+          </div>
+        </div>
+        <Button variant="unstyled" size="none" class="dup-entry-btn" @click="dupOpen = true">
+          扫描
+        </Button>
+      </div>
     </section>
+
+    <DuplicateFinderDialog v-model:open="dupOpen" @removed="handleDuplicatesRemoved" />
   </div>
 </template>
 
@@ -149,5 +177,19 @@ const handleRemove = (library: LocalMusicLibrary) => {
 .row-action-btn:disabled {
   opacity: 0.35;
   pointer-events: none;
+}
+
+/* 重复清理入口：和曲库列表同区，单独一条 */
+.dup-entry {
+  @apply mt-3 flex items-center gap-2 rounded-lg px-2 py-1.5;
+  background: var(--content-panel-bg);
+}
+.dup-entry-btn {
+  @apply shrink-0 rounded-md px-3 py-1 text-[11px] font-semibold;
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+}
+.dup-entry-btn:hover {
+  background: color-mix(in srgb, var(--color-primary) 20%, transparent);
 }
 </style>
