@@ -65,7 +65,13 @@ export async function readTagSnapshots(
     try {
       snapshots.push(await readTagSnapshot(filePath));
     } catch (error) {
-      errors.push({ filePath, ok: false, error: (error as Error).message });
+      // 库里记录的文件可能已经被移动或删除，别把 ENOENT 原样丢给用户
+      const code = (error as NodeJS.ErrnoException).code;
+      const message =
+        code === 'ENOENT'
+          ? '文件已不在这个位置（可能被移动或删除）'
+          : (error as Error).message || '读取失败';
+      errors.push({ filePath, ok: false, error: message });
     }
   }
   return { snapshots, errors };

@@ -264,11 +264,11 @@ async function save() {
                 <span class="tag-label">曲目号</span>
                 <input v-model="form.track" class="tag-input" type="number" min="1" />
               </label>
-              <label v-if="!isBatch" class="tag-field tag-field-sm">
-                <span class="tag-label">风格</span>
-                <input v-model="form.genre" class="tag-input" type="text" />
-              </label>
             </div>
+            <label v-if="!isBatch" class="tag-field">
+              <span class="tag-label">风格</span>
+              <input v-model="form.genre" class="tag-input" type="text" />
+            </label>
             <Button
               v-if="!isBatch"
               variant="unstyled"
@@ -309,7 +309,8 @@ async function save() {
 @reference "@/style.css";
 
 .tag-editor {
-  min-width: 460px;
+  /* 外层 dialog-content 已经是 min(560px, 92vw)，这里撑满即可，别再写死宽度 */
+  width: 100%;
   color: var(--text-main);
 }
 .tag-editor-loading {
@@ -328,7 +329,7 @@ async function save() {
 }
 .tag-editor-body {
   display: flex;
-  gap: 16px;
+  gap: 18px;
 }
 .tag-cover {
   display: flex;
@@ -337,8 +338,8 @@ async function save() {
   flex-shrink: 0;
 }
 .tag-cover-frame {
-  width: 120px;
-  height: 120px;
+  width: 108px;
+  height: 108px;
   border-radius: 12px;
   overflow: hidden;
   background: var(--content-panel-bg);
@@ -393,7 +394,7 @@ async function save() {
 }
 .tag-input {
   width: 100%;
-  padding: 7px 9px;
+  padding: 8px 10px;
   font-size: 13px;
   color: var(--text-main);
   background: color-mix(in srgb, var(--surface-card-base) 60%, transparent);
