@@ -941,10 +941,14 @@ const handleRejectAgreement = () => {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  padding: 14px 16px 10px;
-  border-radius: 16px;
+  padding: 16px 18px 14px;
+  border-radius: 18px;
   border: 1px solid var(--content-panel-border);
   background: var(--content-panel-bg);
+  transition: background-color 0.18s ease;
+}
+.entry-card:hover {
+  background: var(--content-selected-bg);
 }
 .entry-head {
   display: flex;
@@ -1000,9 +1004,9 @@ const handleRejectAgreement = () => {
 .entry-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
-  padding: 6px 0;
+  padding: 9px 0;
   border: 0;
   background: transparent;
   text-align: left;
@@ -1010,9 +1014,9 @@ const handleRejectAgreement = () => {
   min-width: 0;
 }
 .entry-cover {
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
   object-fit: cover;
   flex-shrink: 0;
   background: var(--content-selected-bg);
@@ -1025,7 +1029,7 @@ const handleRejectAgreement = () => {
   flex: 1;
 }
 .entry-row-title {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-main);
   overflow: hidden;
   white-space: nowrap;
@@ -1036,7 +1040,7 @@ const handleRejectAgreement = () => {
   color: var(--color-primary);
 }
 .entry-row-sub {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-secondary);
   overflow: hidden;
   white-space: nowrap;
