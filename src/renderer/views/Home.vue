@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineOptions({ name: 'home' });
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 // 问候语停用后不再使用（保留导入，需要时和模板一起取消注释）
 // import SleepPig from '@/components/SleepPig.vue';
 import { useRouter } from 'vue-router';
@@ -222,24 +222,19 @@ const openRecommend = () => {
   router.push({ name: 'recommend-songs' });
 };
 
-const playTodayRecommend = () => {
-  if (dailySongs.value.length > 0 && heroSong.value) {
-    void replaceQueueAndPlay(playlistStore, playerStore, dailySongs.value, 0, heroSong.value, {
-      type: 'daily-recommend',
-    });
-  } else {
-    openRecommend();
-  }
-};
-
-// Hero Banner 轮播：取每日推荐前5首
+/** 每日推荐：取前四首铺成卡片，跟下面推荐歌单用同一套竖版样式。 */
 const dailySongs = ref<Song[]>([]);
-const heroIndex = ref(0);
-const heroSong = computed(() => {
-  if (dailySongs.value.length === 0) return null;
-  const max = Math.min(dailySongs.value.length, 5);
-  return dailySongs.value[heroIndex.value % max];
-});
+const heroCards = computed(() => dailySongs.value.slice(0, 4));
+
+const playHeroSong = (song: Song) => {
+  const index = Math.max(
+    0,
+    dailySongs.value.findIndex((item) => String(item.id) === String(song.id)),
+  );
+  void replaceQueueAndPlay(playlistStore, playerStore, dailySongs.value, index, song, {
+    type: 'daily-recommend',
+  });
+};
 
 const fetchDailySongs = async () => {
   try {
@@ -250,17 +245,8 @@ const fetchDailySongs = async () => {
   }
 };
 
-let heroTimer: ReturnType<typeof setInterval> | null = null;
 onMounted(() => {
   void fetchDailySongs();
-  heroTimer = setInterval(() => {
-    if (dailySongs.value.length > 1) {
-      heroIndex.value = (heroIndex.value + 1) % Math.min(dailySongs.value.length, 5);
-    }
-  }, 5000);
-});
-onUnmounted(() => {
-  if (heroTimer) clearInterval(heroTimer);
 });
 
 const resolvePlaylistRouteId = (entry: PlaylistMeta) =>
@@ -418,34 +404,35 @@ const handleRejectAgreement = () => {
       </div>
       -->
 
-      <!-- Hero Banner：轮播推荐歌曲 + 右侧两个快捷入口 -->
+      <!-- 今日推荐：竖版卡片，与下方推荐歌单同款；右侧是两个快捷入口 -->
       <div class="hero-row">
-        <div class="hero-banner">
-          <div class="hero-left">
-            <div class="hero-quote">
-              <template v-if="heroSong">
-                <div class="hero-line hero-line-main">{{ heroSong.title }}</div>
-                <div class="hero-line hero-line-sub">
-                  {{ heroSong.artist }} · {{ heroSong.album || '推荐曲目' }}
-                </div>
-              </template>
-              <template v-else>
-                <div class="hero-line hero-line-main">发现好音乐</div>
-                <div class="hero-line hero-line-sub">为你推荐每日精选</div>
-              </template>
-            </div>
-          </div>
+        <div class="hero-cards">
           <button
-            class="hero-play-btn"
+            v-for="song in heroCards"
+            :key="song.id"
             type="button"
-            aria-label="播放推荐"
-            @click="playTodayRecommend"
+            class="hero-card"
+            @click="playHeroSong(song)"
           >
-            <Icon :icon="iconPlay" width="20" height="20" />
+            <div class="hero-card-cover">
+              <img v-if="song.coverUrl" :src="song.coverUrl" alt="" />
+              <span class="hero-card-play">
+                <Icon :icon="iconPlay" width="18" height="18" />
+              </span>
+            </div>
+            <div class="hero-card-title">{{ song.title }}</div>
+            <div class="hero-card-sub">{{ song.artist || '未知歌手' }}</div>
           </button>
-          <div class="hero-right">
-            <img v-if="heroSong?.coverUrl" :src="heroSong.coverUrl" class="hero-cover" alt="" />
-          </div>
+          <button
+            v-if="heroCards.length === 0"
+            type="button"
+            class="hero-card hero-card-empty"
+            @click="openRecommend"
+          >
+            <div class="hero-card-cover hero-card-cover-empty">暂无每日推荐</div>
+            <div class="hero-card-title">去每日推荐看看</div>
+            <div class="hero-card-sub">为你量身定制</div>
+          </button>
         </div>
 
         <!-- 快捷入口：从探索页挪过来，缩成小卡片贴在轮播右侧 -->
@@ -670,91 +657,90 @@ const handleRejectAgreement = () => {
   }
 }
 
-.hero-banner {
-  position: relative;
-  display: flex;
-  align-items: center;
-  /* 高度与内边距都收窄，给右侧的快捷卡片让位 */
-  padding: 28px 36px;
-  border-radius: 20px;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  overflow: hidden;
-  min-height: 200px;
+.hero-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 16px;
+  min-width: 0;
 }
-
-.hero-left {
-  display: flex;
-  align-items: center;
-  z-index: 2;
-  position: relative;
-  max-width: 55%;
-}
-
-.hero-quote {
+.hero-card {
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-
-.hero-line-main {
-  font-size: 44px;
-  font-weight: 800;
-  line-height: 1.2;
-  color: #fff;
-  letter-spacing: 1px;
-  word-break: break-word;
-}
-
-.hero-line-sub {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.4);
-  letter-spacing: 2px;
-  margin-top: 6px;
-}
-
-.hero-play-btn {
-  position: absolute;
-  left: 52%;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 68px;
-  height: 68px;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
   cursor: pointer;
-  transition: all 0.2s ease;
-  z-index: 3;
+  min-width: 0;
 }
-
-.hero-play-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: translateY(-50%) scale(1.05);
-}
-
-.hero-right {
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 45%;
+.hero-card-cover {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 14px;
   overflow: hidden;
+  background: var(--content-panel-bg);
+  border: 1px solid var(--content-panel-border);
 }
-
-.hero-cover {
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
+.hero-card-cover img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  mask-image: linear-gradient(270deg, black 40%, transparent 100%);
-  -webkit-mask-image: linear-gradient(270deg, black 40%, transparent 100%);
+  transition: transform 0.25s ease;
+}
+.hero-card:hover .hero-card-cover img {
+  transform: scale(1.04);
+}
+.hero-card-play {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-on-primary, #fff);
+  background: color-mix(in srgb, var(--color-primary) 88%, transparent);
+  opacity: 0;
+  transform: translateY(4px);
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+.hero-card:hover .hero-card-play {
+  opacity: 1;
+  transform: translateY(0);
+}
+.hero-card-cover-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.hero-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.hero-card-sub {
+  font-size: 11px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-card-cover img,
+  .hero-card-play {
+    transition: none;
+  }
 }
 
 /* 轮播右侧的快捷入口 */
