@@ -471,12 +471,21 @@ const handleRejectAgreement = () => {
             :class="{ active: index === bannerIndex }"
             @click="openBannerPlaylist(item)"
           >
-            <img v-if="item.pic" :src="item.pic" class="banner-image" alt="" />
-            <div class="banner-mask">
-              <div class="banner-title">{{ item.name }}</div>
-              <div class="banner-sub">
-                <span v-if="item.nickname">{{ item.nickname }}</span>
-                <span v-if="item.count"> · {{ item.count }} 首</span>
+            <!-- 背景用同一张图放大模糊，前景放完整封面：封面是方的，硬裁成横幅会只剩一条脸 -->
+            <div
+              v-if="item.pic"
+              class="banner-backdrop"
+              :style="{ backgroundImage: `url(${item.pic})` }"
+            />
+            <div class="banner-scrim" />
+            <div class="banner-content">
+              <img v-if="item.pic" :src="item.pic" class="banner-cover" alt="" />
+              <div class="banner-info">
+                <div class="banner-title">{{ item.name }}</div>
+                <div class="banner-sub">
+                  <span v-if="item.nickname">{{ item.nickname }}</span>
+                  <span v-if="item.count"> · {{ item.count }} 首</span>
+                </div>
               </div>
             </div>
           </button>
@@ -786,17 +795,43 @@ const handleRejectAgreement = () => {
   opacity: 1;
   visibility: visible;
 }
-.banner-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-.banner-mask {
+.banner-backdrop {
   position: absolute;
-  inset: auto 0 0 0;
-  padding: 40px 28px 22px;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.72), transparent);
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  /* 放大一点再模糊，避免边缘露出底色 */
+  transform: scale(1.2);
+  filter: blur(38px) saturate(1.4);
+}
+.banner-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.72) 0%,
+    rgba(0, 0, 0, 0.45) 42%,
+    rgba(0, 0, 0, 0.18) 100%
+  );
+}
+.banner-content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 0 36px;
+}
+.banner-cover {
+  height: 64%;
+  aspect-ratio: 1;
+  flex-shrink: 0;
+  object-fit: cover;
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.38);
+}
+.banner-info {
+  min-width: 0;
   text-align: left;
 }
 .banner-title {
@@ -808,10 +843,14 @@ const handleRejectAgreement = () => {
   text-overflow: ellipsis;
 }
 .banner-sub {
-  margin-top: 4px;
+  margin-top: 6px;
   font-size: 12px;
   color: rgba(255, 255, 255, 0.78);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
+
 .banner-dots {
   position: absolute;
   right: 20px;
