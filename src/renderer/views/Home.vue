@@ -59,6 +59,11 @@ const HOME_GRID_OVERSCAN = 1;
 const HOME_PLAYLIST_COVER_SIZE = 240;
 
 const router = useRouter();
+
+/** 轮播右侧的两个快捷入口：每日推荐与排行榜。 */
+const todayLabel = new Date().getDate().toString();
+const openDailyRecommend = () => router.push({ name: 'recommend-songs' });
+const openRanking = () => router.push({ name: 'ranking' });
 const userStore = useUserStore();
 const settingStore = useSettingStore();
 const playlistStore = usePlaylistStore();
@@ -413,32 +418,57 @@ const handleRejectAgreement = () => {
       </div>
       -->
 
-      <!-- Hero Banner：轮播推荐歌曲 -->
-      <div class="hero-banner">
-        <div class="hero-left">
-          <div class="hero-quote">
-            <template v-if="heroSong">
-              <div class="hero-line hero-line-main">{{ heroSong.title }}</div>
-              <div class="hero-line hero-line-sub">
-                {{ heroSong.artist }} · {{ heroSong.album || '推荐曲目' }}
-              </div>
-            </template>
-            <template v-else>
-              <div class="hero-line hero-line-main">发现好音乐</div>
-              <div class="hero-line hero-line-sub">为你推荐每日精选</div>
-            </template>
+      <!-- Hero Banner：轮播推荐歌曲 + 右侧两个快捷入口 -->
+      <div class="hero-row">
+        <div class="hero-banner">
+          <div class="hero-left">
+            <div class="hero-quote">
+              <template v-if="heroSong">
+                <div class="hero-line hero-line-main">{{ heroSong.title }}</div>
+                <div class="hero-line hero-line-sub">
+                  {{ heroSong.artist }} · {{ heroSong.album || '推荐曲目' }}
+                </div>
+              </template>
+              <template v-else>
+                <div class="hero-line hero-line-main">发现好音乐</div>
+                <div class="hero-line hero-line-sub">为你推荐每日精选</div>
+              </template>
+            </div>
+          </div>
+          <button
+            class="hero-play-btn"
+            type="button"
+            aria-label="播放推荐"
+            @click="playTodayRecommend"
+          >
+            <Icon :icon="iconPlay" width="20" height="20" />
+          </button>
+          <div class="hero-right">
+            <img v-if="heroSong?.coverUrl" :src="heroSong.coverUrl" class="hero-cover" alt="" />
           </div>
         </div>
-        <button
-          class="hero-play-btn"
-          type="button"
-          aria-label="播放推荐"
-          @click="playTodayRecommend"
-        >
-          <Icon :icon="iconPlay" width="20" height="20" />
-        </button>
-        <div class="hero-right">
-          <img v-if="heroSong?.coverUrl" :src="heroSong.coverUrl" class="hero-cover" alt="" />
+
+        <!-- 快捷入口：从探索页挪过来，缩成小卡片贴在轮播右侧 -->
+        <div class="hero-shortcuts">
+          <Button
+            variant="unstyled"
+            size="none"
+            class="hero-short-card"
+            @click="openDailyRecommend"
+          >
+            <div class="hero-short-icon hero-short-primary">{{ todayLabel }}</div>
+            <div class="hero-short-meta">
+              <div class="hero-short-title">每日推荐</div>
+              <div class="hero-short-sub">为你量身定制</div>
+            </div>
+          </Button>
+          <Button variant="unstyled" size="none" class="hero-short-card" @click="openRanking">
+            <div class="hero-short-icon hero-short-secondary">TOP</div>
+            <div class="hero-short-meta">
+              <div class="hero-short-title">排行榜</div>
+              <div class="hero-short-sub">实时热门趋势</div>
+            </div>
+          </Button>
         </div>
       </div>
 
@@ -623,16 +653,33 @@ const handleRejectAgreement = () => {
 }
 
 /* Hero Banner */
+.hero-row {
+  /* 轮播占主区，右侧 240px 放两个快捷卡片 */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  gap: 16px;
+  margin-bottom: 28px;
+  align-items: stretch;
+}
+@media (max-width: 1100px) {
+  .hero-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .hero-shortcuts {
+    flex-direction: row;
+  }
+}
+
 .hero-banner {
   position: relative;
   display: flex;
   align-items: center;
-  margin-bottom: 28px;
-  padding: 48px 56px;
-  border-radius: 24px;
+  /* 高度与内边距都收窄，给右侧的快捷卡片让位 */
+  padding: 28px 36px;
+  border-radius: 20px;
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
   overflow: hidden;
-  min-height: 320px;
+  min-height: 200px;
 }
 
 .hero-left {
@@ -708,6 +755,64 @@ const handleRejectAgreement = () => {
   object-fit: cover;
   mask-image: linear-gradient(270deg, black 40%, transparent 100%);
   -webkit-mask-image: linear-gradient(270deg, black 40%, transparent 100%);
+}
+
+/* 轮播右侧的快捷入口 */
+.hero-shortcuts {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.hero-short-card {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  border-radius: 18px;
+  background: var(--content-panel-bg);
+  border: 1px solid var(--content-panel-border);
+  cursor: pointer;
+  transition: background-color 0.18s ease;
+}
+.hero-short-card:hover {
+  background: var(--content-selected-bg);
+}
+.hero-short-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.hero-short-primary {
+  background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+}
+.hero-short-secondary {
+  background: linear-gradient(135deg, #4facfe, #0071e3);
+}
+.hero-short-meta {
+  min-width: 0;
+  text-align: left;
+}
+.hero-short-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+.hero-short-sub {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .home-feature-row {
