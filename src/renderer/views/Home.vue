@@ -1,13 +1,13 @@
 <script setup lang="ts">
 defineOptions({ name: 'home' });
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 // 问候语停用后不再使用（保留导入，需要时和模板一起取消注释）
 // import SleepPig from '@/components/SleepPig.vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '@/stores/user';
 import { useSettingStore } from '@/stores/setting';
 import { getPlaylistByCategory, getTopIP } from '@/api/playlist';
-import { getEverydayStyleRecommend, getEverydayRecommend } from '@/api/music';
+import { getEverydayStyleRecommend, getEverydayRecommend, getPersonalFm } from '@/api/music';
 import PlaylistCard from '@/components/music/PlaylistCard.vue';
 import SongCard from '@/components/music/SongCard.vue';
 import VirtualGrid from '@/components/ui/VirtualGrid.vue';
@@ -15,7 +15,7 @@ import { mapPlaylistMeta, mapTopSong } from '@/utils/mappers';
 import { extractList } from '@/utils/extractors';
 import type { PlaylistMeta } from '@/models/playlist';
 import type { Song } from '@/models/song';
-import { iconPlay, iconSlidersHorizontal } from '@/icons';
+import { iconCompass, iconPlay, iconPulse, iconSlidersHorizontal } from '@/icons';
 import Button from '@/components/ui/Button.vue';
 import UserAgreementDialog from '@/components/app/UserAgreementDialog.vue';
 import PageScrollContainer from '@/components/ui/PageScrollContainer.vue';
@@ -60,10 +60,8 @@ const HOME_PLAYLIST_COVER_SIZE = 240;
 
 const router = useRouter();
 
-/** 轮播右侧的两个快捷入口：每日推荐与排行榜。 */
+/** 顶部快捷入口用得到的几个跳转。 */
 const todayLabel = new Date().getDate().toString();
-const openDailyRecommend = () => router.push({ name: 'recommend-songs' });
-const openRanking = () => router.push({ name: 'ranking' });
 const userStore = useUserStore();
 const settingStore = useSettingStore();
 const playlistStore = usePlaylistStore();
@@ -221,20 +219,18 @@ const loadStyleRecommend = async (options: { useSelectedTags?: boolean } = {}) =
 const openRecommend = () => {
   router.push({ name: 'recommend-songs' });
 };
-
-/** 每日推荐：取前四首铺成卡片，跟下面推荐歌单用同一套竖版样式。 */
-const dailySongs = ref<Song[]>([]);
-const heroCards = computed(() => dailySongs.value.slice(0, 4));
-
-const playHeroSong = (song: Song) => {
-  const index = Math.max(
-    0,
-    dailySongs.value.findIndex((item) => String(item.id) === String(song.id)),
-  );
-  void replaceQueueAndPlay(playlistStore, playerStore, dailySongs.value, index, song, {
-    type: 'daily-recommend',
-  });
+const openPersonalFm = () => {
+  router.push({ name: 'personal-fm' });
 };
+const openRankingPage = () => {
+  router.push({ name: 'ranking' });
+};
+const openExplore = () => {
+  router.push({ name: 'explore' });
+};
+
+/** 每日推荐歌曲：首页几处都要用，单独存一份。 */
+const dailySongs = ref<Song[]>([]);
 
 const fetchDailySongs = async () => {
   try {
@@ -245,8 +241,65 @@ const fetchDailySongs = async () => {
   }
 };
 
+/** 猜你喜欢：拿私人 FM 的前十首，横滑一排。 */
+const guessSongs = ref<Song[]>([]);
+const fetchGuessSongs = async () => {
+  try {
+    const res = await getPersonalFm();
+    guessSongs.value = extractList(res)
+      .map((item) => mapTopSong(item))
+      .slice(0, 10);
+  } catch {
+    guessSongs.value = [];
+  }
+};
+
+const playGuessSong = (song: Song) => {
+  const index = Math.max(
+    0,
+    guessSongs.value.findIndex((item) => String(item.id) === String(song.id)),
+  );
+  void replaceQueueAndPlay(playlistStore, playerStore, guessSongs.value, index, song, {
+    type: 'fm',
+  });
+};
+
+/**
+ * 顶部轮播：拿推荐歌单的前几个当大图，和 QQ音乐/网易云的首页 banner 一致。
+ * 5 秒自动切换，鼠标移上去暂停，点圆点可手动跳。
+ */
+const bannerIndex = ref(0);
+const bannerPaused = ref(false);
+const bannerItems = computed(() => recommendedPlaylists.value.slice(0, 5));
+
+const setBanner = (index: number) => {
+  if (bannerItems.value.length === 0) return;
+  bannerIndex.value = index % bannerItems.value.length;
+};
+
+const openBannerPlaylist = (entry: PlaylistMeta) => {
+  const id = resolvePlaylistRouteId(entry);
+  if (id !== undefined && id !== null && id !== '') {
+    router.push({ name: 'playlist-detail', params: { id: String(id) } });
+  }
+};
+
+let bannerTimer: ReturnType<typeof setInterval> | null = null;
+const startBannerTimer = () => {
+  if (bannerTimer) clearInterval(bannerTimer);
+  bannerTimer = setInterval(() => {
+    if (bannerPaused.value || bannerItems.value.length < 2) return;
+    bannerIndex.value = (bannerIndex.value + 1) % bannerItems.value.length;
+  }, 5000);
+};
+
 onMounted(() => {
   void fetchDailySongs();
+  void fetchGuessSongs();
+  startBannerTimer();
+});
+onUnmounted(() => {
+  if (bannerTimer) clearInterval(bannerTimer);
 });
 
 const resolvePlaylistRouteId = (entry: PlaylistMeta) =>
@@ -404,60 +457,94 @@ const handleRejectAgreement = () => {
       </div>
       -->
 
-      <!-- 今日推荐：竖版卡片，与下方推荐歌单同款；右侧是两个快捷入口 -->
-      <div class="hero-row">
-        <div class="hero-cards">
+      <!-- 顶部轮播：参考 QQ音乐/网易云，大图 + 底部圆点，5 秒自动切 -->
+      <div class="home-banner" @mouseenter="bannerPaused = true" @mouseleave="bannerPaused = false">
+        <div v-if="bannerItems.length === 0" class="banner-placeholder">
+          <span>正在准备推荐…</span>
+        </div>
+        <template v-else>
           <button
-            v-for="song in heroCards"
+            v-for="(item, index) in bannerItems"
+            :key="item.id"
+            type="button"
+            class="banner-slide"
+            :class="{ active: index === bannerIndex }"
+            @click="openBannerPlaylist(item)"
+          >
+            <img v-if="item.pic" :src="item.pic" class="banner-image" alt="" />
+            <div class="banner-mask">
+              <div class="banner-title">{{ item.name }}</div>
+              <div class="banner-sub">
+                <span v-if="item.nickname">{{ item.nickname }}</span>
+                <span v-if="item.count"> · {{ item.count }} 首</span>
+              </div>
+            </div>
+          </button>
+          <div class="banner-dots">
+            <button
+              v-for="(item, index) in bannerItems"
+              :key="`dot-${item.id}`"
+              type="button"
+              class="banner-dot"
+              :class="{ active: index === bannerIndex }"
+              :aria-label="`第 ${index + 1} 张`"
+              @click.stop="setBanner(index)"
+            />
+          </div>
+        </template>
+      </div>
+
+      <!-- 快捷入口：参考 QQ音乐的四宫格 -->
+      <div class="quick-row">
+        <button type="button" class="quick-item" @click="openRecommend">
+          <span class="quick-icon quick-icon-orange">{{ todayLabel }}</span>
+          <span class="quick-label">每日推荐</span>
+        </button>
+        <button type="button" class="quick-item" @click="openPersonalFm">
+          <span class="quick-icon quick-icon-purple">
+            <Icon :icon="iconPulse" width="18" height="18" />
+          </span>
+          <span class="quick-label">私人 FM</span>
+        </button>
+        <button type="button" class="quick-item" @click="openRankingPage">
+          <span class="quick-icon quick-icon-blue">TOP</span>
+          <span class="quick-label">排行榜</span>
+        </button>
+        <button type="button" class="quick-item" @click="openExplore">
+          <span class="quick-icon quick-icon-green">
+            <Icon :icon="iconCompass" width="18" height="18" />
+          </span>
+          <span class="quick-label">歌单广场</span>
+        </button>
+      </div>
+
+      <!-- 猜你喜欢：横滑一排，参考 QQ音乐首页的「猜你喜欢」 -->
+      <section v-if="guessSongs.length > 0" class="home-section">
+        <div class="section-header">
+          <div class="section-title">猜你喜欢</div>
+          <Button variant="unstyled" size="none" class="section-more" @click="openPersonalFm">
+            更多
+          </Button>
+        </div>
+        <div class="guess-row">
+          <button
+            v-for="song in guessSongs"
             :key="song.id"
             type="button"
-            class="hero-card"
-            @click="playHeroSong(song)"
+            class="guess-card"
+            @click="playGuessSong(song)"
           >
-            <div class="hero-card-cover">
+            <div class="guess-cover">
               <img v-if="song.coverUrl" :src="song.coverUrl" alt="" />
-              <span class="hero-card-play">
-                <Icon :icon="iconPlay" width="18" height="18" />
+              <span class="guess-play">
+                <Icon :icon="iconPlay" width="16" height="16" />
               </span>
             </div>
-            <div class="hero-card-title">{{ song.title }}</div>
-            <div class="hero-card-sub">{{ song.artist || '未知歌手' }}</div>
-          </button>
-          <button
-            v-if="heroCards.length === 0"
-            type="button"
-            class="hero-card hero-card-empty"
-            @click="openRecommend"
-          >
-            <div class="hero-card-cover hero-card-cover-empty">暂无每日推荐</div>
-            <div class="hero-card-title">去每日推荐看看</div>
-            <div class="hero-card-sub">为你量身定制</div>
+            <div class="guess-title">{{ song.title }}</div>
+            <div class="guess-sub">{{ song.artist || '未知歌手' }}</div>
           </button>
         </div>
-
-        <!-- 快捷入口：从探索页挪过来，缩成小卡片贴在轮播右侧 -->
-        <div class="hero-shortcuts">
-          <Button
-            variant="unstyled"
-            size="none"
-            class="hero-short-card"
-            @click="openDailyRecommend"
-          >
-            <div class="hero-short-icon hero-short-primary">{{ todayLabel }}</div>
-            <div class="hero-short-meta">
-              <div class="hero-short-title">每日推荐</div>
-              <div class="hero-short-sub">为你量身定制</div>
-            </div>
-          </Button>
-          <Button variant="unstyled" size="none" class="hero-short-card" @click="openRanking">
-            <div class="hero-short-icon hero-short-secondary">TOP</div>
-            <div class="hero-short-meta">
-              <div class="hero-short-title">排行榜</div>
-              <div class="hero-short-sub">实时热门趋势</div>
-            </div>
-          </Button>
-        </div>
-      </div>
+      </section>
 
       <section class="home-section">
         <div class="section-header">
@@ -657,13 +744,170 @@ const handleRejectAgreement = () => {
   }
 }
 
-.hero-cards {
+/* ── 顶部轮播 ── */
+.home-banner {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2.6 / 1;
+  border-radius: 20px;
+  overflow: hidden;
+  margin-bottom: 18px;
+  background: var(--content-panel-bg);
+  border: 1px solid var(--content-panel-border);
+}
+@media (max-width: 900px) {
+  .home-banner {
+    aspect-ratio: 2 / 1;
+  }
+}
+.banner-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.banner-slide {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.6s ease,
+    visibility 0.6s ease;
+  cursor: pointer;
+}
+.banner-slide.active {
+  opacity: 1;
+  visibility: visible;
+}
+.banner-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.banner-mask {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 40px 28px 22px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.72), transparent);
+  text-align: left;
+}
+.banner-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.banner-sub {
+  margin-top: 4px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.78);
+}
+.banner-dots {
+  position: absolute;
+  right: 20px;
+  bottom: 16px;
+  display: flex;
+  gap: 6px;
+}
+.banner-dot {
+  width: 7px;
+  height: 7px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  transition:
+    width 0.2s ease,
+    background-color 0.2s ease;
+}
+.banner-dot.active {
+  width: 18px;
+  border-radius: 4px;
+  background: #fff;
+}
+
+/* ── 快捷入口四宫格 ── */
+.quick-row {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 30px;
+}
+@media (max-width: 700px) {
+  .quick-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.quick-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--content-panel-border);
+  background: var(--content-panel-bg);
+  cursor: pointer;
+  transition: background-color 0.18s ease;
   min-width: 0;
 }
-.hero-card {
+.quick-item:hover {
+  background: var(--content-selected-bg);
+}
+.quick-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.quick-icon-orange {
+  background: linear-gradient(135deg, #ff8a3d, #f4511e);
+}
+.quick-icon-purple {
+  background: linear-gradient(135deg, #a855f7, #6d28d9);
+}
+.quick-icon-blue {
+  background: linear-gradient(135deg, #4facfe, #0071e3);
+}
+.quick-icon-green {
+  background: linear-gradient(135deg, #34d399, #059669);
+}
+.quick-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* ── 猜你喜欢：横滑一排 ── */
+.guess-row {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+}
+.guess-card {
+  flex: 0 0 150px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -672,32 +916,32 @@ const handleRejectAgreement = () => {
   background: transparent;
   text-align: left;
   cursor: pointer;
-  min-width: 0;
 }
-.hero-card-cover {
+.guess-cover {
   position: relative;
-  width: 100%;
-  aspect-ratio: 1;
+  width: 150px;
+  height: 150px;
   border-radius: 14px;
   overflow: hidden;
   background: var(--content-panel-bg);
   border: 1px solid var(--content-panel-border);
 }
-.hero-card-cover img {
+.guess-cover img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
   transition: transform 0.25s ease;
 }
-.hero-card:hover .hero-card-cover img {
+.guess-card:hover .guess-cover img {
   transform: scale(1.04);
 }
-.hero-card-play {
+.guess-play {
   position: absolute;
-  right: 10px;
-  bottom: 10px;
-  width: 34px;
-  height: 34px;
+  right: 8px;
+  bottom: 8px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -710,18 +954,11 @@ const handleRejectAgreement = () => {
     opacity 0.18s ease,
     transform 0.18s ease;
 }
-.hero-card:hover .hero-card-play {
+.guess-card:hover .guess-play {
   opacity: 1;
   transform: translateY(0);
 }
-.hero-card-cover-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-.hero-card-title {
+.guess-title {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-main);
@@ -729,16 +966,24 @@ const handleRejectAgreement = () => {
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-.hero-card-sub {
+.guess-sub {
   font-size: 11px;
   color: var(--text-secondary);
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+.section-more {
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.section-more:hover {
+  color: var(--color-primary);
+}
 @media (prefers-reduced-motion: reduce) {
-  .hero-card-cover img,
-  .hero-card-play {
+  .guess-cover img,
+  .guess-play {
     transition: none;
   }
 }
