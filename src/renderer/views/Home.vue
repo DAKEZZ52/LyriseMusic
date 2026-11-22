@@ -574,7 +574,9 @@ const handleRejectAgreement = () => {
 <template>
   <PageScrollContainer class="home-view-container">
     <div class="home-view px-10 pt-4 pb-10">
-      <!-- 问候语暂时停用（保留结构，需要时取消注释即可）
+      <div class="home-layout">
+        <div class="home-main">
+          <!-- 问候语暂时停用（保留结构，需要时取消注释即可）
       <div class="home-header">
         <div class="text-[22px] font-semibold tracking-tight text-text-main">{{ greeting }}</div>
         <div ref="greetingSubtitleRef" class="text-[12px] text-text-secondary/80 mt-1">
@@ -584,309 +586,325 @@ const handleRejectAgreement = () => {
       </div>
       -->
 
-      <!-- 顶部轮播：参考 QQ音乐/网易云，大图 + 底部圆点，5 秒自动切 -->
-      <div class="home-banner" @mouseenter="bannerPaused = true" @mouseleave="bannerPaused = false">
-        <div v-if="bannerItems.length === 0" class="banner-placeholder">
-          <span>正在准备推荐…</span>
-        </div>
-        <template v-else>
-          <button
-            v-for="(item, index) in bannerItems"
-            :key="item.id"
-            type="button"
-            class="banner-slide"
-            :class="{ active: index === bannerIndex }"
-            @click="openBannerPlaylist(item)"
+          <!-- 顶部轮播：参考 QQ音乐/网易云，大图 + 底部圆点，5 秒自动切 -->
+          <div
+            class="home-banner"
+            @mouseenter="bannerPaused = true"
+            @mouseleave="bannerPaused = false"
           >
-            <!-- 背景用同一张图放大模糊，前景放完整封面：封面是方的，硬裁成横幅会只剩一条脸 -->
-            <div
-              v-if="item.pic"
-              class="banner-backdrop"
-              :style="{ backgroundImage: `url(${item.pic})` }"
-            />
-            <div class="banner-scrim" />
-            <div class="banner-content">
-              <img v-if="item.pic" :src="item.pic" class="banner-cover" alt="" />
-              <div class="banner-info">
-                <div class="banner-title">{{ item.name }}</div>
-                <div class="banner-sub">
-                  <span v-if="item.nickname">{{ item.nickname }}</span>
-                  <span v-if="item.count"> · {{ item.count }} 首</span>
+            <div v-if="bannerItems.length === 0" class="banner-placeholder">
+              <span>正在准备推荐…</span>
+            </div>
+            <template v-else>
+              <button
+                v-for="(item, index) in bannerItems"
+                :key="item.id"
+                type="button"
+                class="banner-slide"
+                :class="{ active: index === bannerIndex }"
+                @click="openBannerPlaylist(item)"
+              >
+                <!-- 背景用同一张图放大模糊，前景放完整封面：封面是方的，硬裁成横幅会只剩一条脸 -->
+                <div
+                  v-if="item.pic"
+                  class="banner-backdrop"
+                  :style="{ backgroundImage: `url(${item.pic})` }"
+                />
+                <div class="banner-scrim" />
+                <div class="banner-content">
+                  <img v-if="item.pic" :src="item.pic" class="banner-cover" alt="" />
+                  <div class="banner-info">
+                    <div class="banner-title">{{ item.name }}</div>
+                    <div class="banner-sub">
+                      <span v-if="item.nickname">{{ item.nickname }}</span>
+                      <span v-if="item.count"> · {{ item.count }} 首</span>
+                    </div>
+                  </div>
+                </div>
+              </button>
+              <div class="banner-dots">
+                <button
+                  v-for="(item, index) in bannerItems"
+                  :key="`dot-${item.id}`"
+                  type="button"
+                  class="banner-dot"
+                  :class="{ active: index === bannerIndex }"
+                  :aria-label="`第 ${index + 1} 张`"
+                  @click.stop="setBanner(index)"
+                />
+              </div>
+            </template>
+          </div>
+
+          <!-- 每日推荐：参考网易云，日期 + 说明 + 播放全部 + 封面墙 -->
+          <section v-if="dailySongs.length > 0" class="daily-hero">
+            <div class="daily-badge">
+              <span class="daily-day">{{ todayLabel }}</span>
+              <span class="daily-month">日</span>
+            </div>
+            <div class="daily-info">
+              <div class="daily-title">每日推荐</div>
+              <div class="daily-sub">根据你的口味，今天为你准备了 {{ dailySongs.length }} 首</div>
+              <button type="button" class="daily-play" @click="playAllDaily">
+                <Icon :icon="iconPlay" width="14" height="14" />
+                <span>播放全部</span>
+              </button>
+            </div>
+            <div class="daily-covers">
+              <button
+                v-for="song in dailySongs.slice(0, 5)"
+                :key="song.id"
+                type="button"
+                class="daily-cover"
+                @click="playDailySong(song)"
+              >
+                <img v-if="song.coverUrl" :src="song.coverUrl" alt="" />
+              </button>
+            </div>
+          </section>
+
+          <!-- 猜你喜欢：横滑歌曲卡 -->
+          <section v-if="guessSongs.length > 0" class="home-section">
+            <div class="section-header">
+              <div class="section-title">猜你喜欢</div>
+              <button type="button" class="section-more" @click="openPersonalFm">更多</button>
+            </div>
+            <div class="guess-row">
+              <button
+                v-for="song in guessSongs"
+                :key="song.id"
+                type="button"
+                class="guess-card"
+                @click="playGuessSong(song)"
+              >
+                <div class="guess-cover">
+                  <img v-if="song.coverUrl" :src="song.coverUrl" alt="" />
+                  <span class="guess-play">
+                    <Icon :icon="iconPlay" width="16" height="16" />
+                  </span>
+                </div>
+                <div class="guess-title">{{ song.title }}</div>
+                <div class="guess-sub">{{ song.artist || '未知歌手' }}</div>
+              </button>
+            </div>
+          </section>
+
+          <section class="home-section">
+            <div class="section-header">
+              <div class="section-title">推荐歌单</div>
+              <div class="playlist-source-tabs">
+                <Button
+                  v-for="category in RECOMMEND_PLAYLIST_CATEGORIES"
+                  :key="category.id"
+                  variant="unstyled"
+                  size="none"
+                  class="playlist-source-btn"
+                  :class="{ active: activeRecommendCategoryId === category.id }"
+                  @click="switchRecommendCategory(category.id)"
+                >
+                  {{ category.label }}
+                </Button>
+              </div>
+            </div>
+            <div v-if="!recommendState.loading && recommendState.error" class="section-placeholder">
+              {{ recommendState.error }}
+            </div>
+            <VirtualGrid
+              v-else
+              class="playlist-grid"
+              :items="visiblePlaylistCards"
+              :loading="recommendState.loading"
+              :itemMinWidth="180"
+              :itemAspectRatio="1"
+              :itemChromeHeight="66"
+              :gap="20"
+              :overscan="HOME_GRID_OVERSCAN"
+              :virtualThreshold="HOME_GRID_VIRTUAL_THRESHOLD"
+              keyField="id"
+            >
+              <template #default="{ item }">
+                <PlaylistCard v-bind="item" :coverSize="HOME_PLAYLIST_COVER_SIZE" layout="grid" />
+              </template>
+            </VirtualGrid>
+          </section>
+
+          <!-- 最新音乐：左边新歌列表，右边新碟上架 -->
+          <section v-if="newSongs.length > 0 || newAlbums.length > 0" class="home-section">
+            <div class="section-header">
+              <div class="section-title">最新音乐</div>
+            </div>
+            <div class="new-music">
+              <div v-if="newSongs.length > 0" class="new-songs">
+                <div class="new-sub-title">新歌速递</div>
+                <div class="new-song-list">
+                  <button
+                    v-for="song in newSongs"
+                    :key="song.id"
+                    type="button"
+                    class="new-song-row"
+                    @click="playNewSong(song)"
+                  >
+                    <img v-if="song.coverUrl" class="new-song-cover" :src="song.coverUrl" alt="" />
+                    <span class="new-song-main">
+                      <span class="new-song-name">{{ song.title }}</span>
+                      <span class="new-song-artist">{{ song.artist || '未知歌手' }}</span>
+                    </span>
+                  </button>
+                </div>
+              </div>
+              <div v-if="newAlbums.length > 0" class="new-albums">
+                <div class="new-sub-title">新碟上架</div>
+                <div class="new-album-grid">
+                  <AlbumCard
+                    v-for="album in newAlbums"
+                    :key="album.id"
+                    :id="album.id"
+                    :name="album.name"
+                    :coverUrl="album.pic"
+                    :artist="album.singerName"
+                  />
                 </div>
               </div>
             </div>
-          </button>
-          <div class="banner-dots">
-            <button
-              v-for="(item, index) in bannerItems"
-              :key="`dot-${item.id}`"
-              type="button"
-              class="banner-dot"
-              :class="{ active: index === bannerIndex }"
-              :aria-label="`第 ${index + 1} 张`"
-              @click.stop="setBanner(index)"
-            />
-          </div>
-        </template>
-      </div>
+          </section>
 
-      <!-- 每日推荐：参考网易云，日期 + 说明 + 播放全部 + 封面墙 -->
-      <section v-if="dailySongs.length > 0" class="daily-hero">
-        <div class="daily-badge">
-          <span class="daily-day">{{ todayLabel }}</span>
-          <span class="daily-month">日</span>
-        </div>
-        <div class="daily-info">
-          <div class="daily-title">每日推荐</div>
-          <div class="daily-sub">根据你的口味，今天为你准备了 {{ dailySongs.length }} 首</div>
-          <button type="button" class="daily-play" @click="playAllDaily">
-            <Icon :icon="iconPlay" width="14" height="14" />
-            <span>播放全部</span>
-          </button>
-        </div>
-        <div class="daily-covers">
-          <button
-            v-for="song in dailySongs.slice(0, 5)"
-            :key="song.id"
-            type="button"
-            class="daily-cover"
-            @click="playDailySong(song)"
-          >
-            <img v-if="song.coverUrl" :src="song.coverUrl" alt="" />
-          </button>
-        </div>
-      </section>
-
-      <!-- 猜你喜欢：横滑歌曲卡 -->
-      <section v-if="guessSongs.length > 0" class="home-section">
-        <div class="section-header">
-          <div class="section-title">猜你喜欢</div>
-          <button type="button" class="section-more" @click="openPersonalFm">更多</button>
-        </div>
-        <div class="guess-row">
-          <button
-            v-for="song in guessSongs"
-            :key="song.id"
-            type="button"
-            class="guess-card"
-            @click="playGuessSong(song)"
-          >
-            <div class="guess-cover">
-              <img v-if="song.coverUrl" :src="song.coverUrl" alt="" />
-              <span class="guess-play">
-                <Icon :icon="iconPlay" width="16" height="16" />
-              </span>
+          <section class="home-section style-recommend-section">
+            <div class="section-header">
+              <div>
+                <div class="section-title">风格推荐</div>
+              </div>
+              <div class="style-section-actions">
+                <Button
+                  variant="unstyled"
+                  size="none"
+                  class="style-play-btn"
+                  :disabled="styleSongs.length === 0"
+                  @click="playStyleSongs()"
+                >
+                  <Icon :icon="iconPlay" width="14" height="14" />
+                  <span>播放全部</span>
+                </Button>
+              </div>
             </div>
-            <div class="guess-title">{{ song.title }}</div>
-            <div class="guess-sub">{{ song.artist || '未知歌手' }}</div>
-          </button>
-        </div>
-      </section>
 
-      <!-- 排行榜：三个榜各带前三首，不用点进去就能看见内容 -->
-      <section v-if="rankPreviews && rankPreviews.length > 0" class="home-section">
-        <div class="section-header">
-          <div class="section-title">排行榜</div>
-          <button type="button" class="section-more" @click="openRankingPage">更多</button>
+            <div class="style-recommend-panel">
+              <div class="style-category-row">
+                <div class="style-panel-label">
+                  <Icon :icon="iconSlidersHorizontal" width="14" height="14" />
+                  <span>{{ styleSummary }}</span>
+                </div>
+                <div class="style-category-tabs">
+                  <Button
+                    v-for="group in styleGroups"
+                    :key="group.name"
+                    variant="unstyled"
+                    size="none"
+                    class="style-category-btn"
+                    :class="{ active: activeStyleGroupName === group.name }"
+                    @click="activeStyleGroupName = group.name"
+                  >
+                    {{ group.name }}
+                  </Button>
+                </div>
+              </div>
+
+              <div class="style-tag-row">
+                <Button
+                  v-for="tag in activeStyleGroup?.child ?? []"
+                  :key="tag.id"
+                  variant="unstyled"
+                  size="none"
+                  class="style-tag-btn"
+                  :class="{ active: selectedStyleTagIds.has(tag.id) }"
+                  @click="toggleStyleTag(tag)"
+                >
+                  {{ tag.name }}
+                </Button>
+              </div>
+
+              <div v-if="!styleState.loading && styleState.error" class="style-song-placeholder">
+                {{ styleState.error }}
+              </div>
+              <div
+                v-else-if="!styleState.loading && styleSongs.length === 0"
+                class="style-song-placeholder"
+              >
+                暂无风格推荐
+              </div>
+              <VirtualGrid
+                v-else
+                class="style-song-grid"
+                :items="styleSongs"
+                :loading="styleState.loading"
+                :itemMinWidth="240"
+                :itemHeight="62"
+                :gap="10"
+                :overscan="HOME_GRID_OVERSCAN"
+                :virtualThreshold="18"
+                loadingVariant="compact"
+                keyField="id"
+              >
+                <template #default="{ item: song }">
+                  <SongCard
+                    :song="song"
+                    :active="activeSongId === String(song.id)"
+                    :queueContext="styleSongs"
+                    :queueOptions="styleQueueOptions"
+                    :showAlbum="false"
+                    :showDuration="false"
+                    :showMore="false"
+                    :showCoverPlayButton="true"
+                    :enableDefaultDoubleTapPlay="true"
+                    :onDoubleTapPlay="
+                      settingStore.playbackQueueMode === 'context'
+                        ? handleStyleSongDoubleTapPlay
+                        : undefined
+                    "
+                    :onCoverPlay="handleStyleSongCoverPlay"
+                  />
+                </template>
+              </VirtualGrid>
+            </div>
+          </section>
         </div>
-        <div class="rank-grid">
-          <div v-for="preview in rankPreviews" :key="preview.rank.id" class="rank-col">
-            <button type="button" class="rank-head" @click="openRank(preview.rank)">
-              <img v-if="preview.rank.pic" class="rank-pic" :src="preview.rank.pic" alt="" />
-              <span class="rank-name">{{ preview.rank.name }}</span>
-            </button>
-            <ul class="rank-songs">
-              <li v-for="song in preview.songs || []" :key="song.id">
-                <button type="button" class="rank-song" @click="playRankSong(song, preview.songs)">
-                  <img v-if="song.coverUrl" class="rank-song-cover" :src="song.coverUrl" alt="" />
-                  <span class="rank-song-main">
-                    <span class="rank-song-name">{{ song.title }}</span>
-                    <span class="rank-song-artist">{{ song.artist || '未知歌手' }}</span>
-                  </span>
+        <aside class="home-side">
+          <!-- 排行榜：三个榜各带前三首，不用点进去就能看见内容 -->
+          <section v-if="rankPreviews && rankPreviews.length > 0" class="home-section">
+            <div class="section-header">
+              <div class="section-title">排行榜</div>
+              <button type="button" class="section-more" @click="openRankingPage">更多</button>
+            </div>
+            <div class="rank-grid">
+              <div v-for="preview in rankPreviews" :key="preview.rank.id" class="rank-col">
+                <button type="button" class="rank-head" @click="openRank(preview.rank)">
+                  <img v-if="preview.rank.pic" class="rank-pic" :src="preview.rank.pic" alt="" />
+                  <span class="rank-name">{{ preview.rank.name }}</span>
                 </button>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      <section class="home-section">
-        <div class="section-header">
-          <div class="section-title">推荐歌单</div>
-          <div class="playlist-source-tabs">
-            <Button
-              v-for="category in RECOMMEND_PLAYLIST_CATEGORIES"
-              :key="category.id"
-              variant="unstyled"
-              size="none"
-              class="playlist-source-btn"
-              :class="{ active: activeRecommendCategoryId === category.id }"
-              @click="switchRecommendCategory(category.id)"
-            >
-              {{ category.label }}
-            </Button>
-          </div>
-        </div>
-        <div v-if="!recommendState.loading && recommendState.error" class="section-placeholder">
-          {{ recommendState.error }}
-        </div>
-        <VirtualGrid
-          v-else
-          class="playlist-grid"
-          :items="visiblePlaylistCards"
-          :loading="recommendState.loading"
-          :itemMinWidth="180"
-          :itemAspectRatio="1"
-          :itemChromeHeight="66"
-          :gap="20"
-          :overscan="HOME_GRID_OVERSCAN"
-          :virtualThreshold="HOME_GRID_VIRTUAL_THRESHOLD"
-          keyField="id"
-        >
-          <template #default="{ item }">
-            <PlaylistCard v-bind="item" :coverSize="HOME_PLAYLIST_COVER_SIZE" layout="grid" />
-          </template>
-        </VirtualGrid>
-      </section>
-
-      <!-- 最新音乐：左边新歌列表，右边新碟上架 -->
-      <section v-if="newSongs.length > 0 || newAlbums.length > 0" class="home-section">
-        <div class="section-header">
-          <div class="section-title">最新音乐</div>
-        </div>
-        <div class="new-music">
-          <div v-if="newSongs.length > 0" class="new-songs">
-            <div class="new-sub-title">新歌速递</div>
-            <div class="new-song-list">
-              <button
-                v-for="song in newSongs"
-                :key="song.id"
-                type="button"
-                class="new-song-row"
-                @click="playNewSong(song)"
-              >
-                <img v-if="song.coverUrl" class="new-song-cover" :src="song.coverUrl" alt="" />
-                <span class="new-song-main">
-                  <span class="new-song-name">{{ song.title }}</span>
-                  <span class="new-song-artist">{{ song.artist || '未知歌手' }}</span>
-                </span>
-              </button>
+                <ul class="rank-songs">
+                  <li v-for="song in preview.songs || []" :key="song.id">
+                    <button
+                      type="button"
+                      class="rank-song"
+                      @click="playRankSong(song, preview.songs)"
+                    >
+                      <img
+                        v-if="song.coverUrl"
+                        class="rank-song-cover"
+                        :src="song.coverUrl"
+                        alt=""
+                      />
+                      <span class="rank-song-main">
+                        <span class="rank-song-name">{{ song.title }}</span>
+                        <span class="rank-song-artist">{{ song.artist || '未知歌手' }}</span>
+                      </span>
+                    </button>
+                  </li>
+                </ul>
+              </div>
             </div>
-          </div>
-          <div v-if="newAlbums.length > 0" class="new-albums">
-            <div class="new-sub-title">新碟上架</div>
-            <div class="new-album-grid">
-              <AlbumCard
-                v-for="album in newAlbums"
-                :key="album.id"
-                :id="album.id"
-                :name="album.name"
-                :coverUrl="album.pic"
-                :artist="album.singerName"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="home-section style-recommend-section">
-        <div class="section-header">
-          <div>
-            <div class="section-title">风格推荐</div>
-          </div>
-          <div class="style-section-actions">
-            <Button
-              variant="unstyled"
-              size="none"
-              class="style-play-btn"
-              :disabled="styleSongs.length === 0"
-              @click="playStyleSongs()"
-            >
-              <Icon :icon="iconPlay" width="14" height="14" />
-              <span>播放全部</span>
-            </Button>
-          </div>
-        </div>
-
-        <div class="style-recommend-panel">
-          <div class="style-category-row">
-            <div class="style-panel-label">
-              <Icon :icon="iconSlidersHorizontal" width="14" height="14" />
-              <span>{{ styleSummary }}</span>
-            </div>
-            <div class="style-category-tabs">
-              <Button
-                v-for="group in styleGroups"
-                :key="group.name"
-                variant="unstyled"
-                size="none"
-                class="style-category-btn"
-                :class="{ active: activeStyleGroupName === group.name }"
-                @click="activeStyleGroupName = group.name"
-              >
-                {{ group.name }}
-              </Button>
-            </div>
-          </div>
-
-          <div class="style-tag-row">
-            <Button
-              v-for="tag in activeStyleGroup?.child ?? []"
-              :key="tag.id"
-              variant="unstyled"
-              size="none"
-              class="style-tag-btn"
-              :class="{ active: selectedStyleTagIds.has(tag.id) }"
-              @click="toggleStyleTag(tag)"
-            >
-              {{ tag.name }}
-            </Button>
-          </div>
-
-          <div v-if="!styleState.loading && styleState.error" class="style-song-placeholder">
-            {{ styleState.error }}
-          </div>
-          <div
-            v-else-if="!styleState.loading && styleSongs.length === 0"
-            class="style-song-placeholder"
-          >
-            暂无风格推荐
-          </div>
-          <VirtualGrid
-            v-else
-            class="style-song-grid"
-            :items="styleSongs"
-            :loading="styleState.loading"
-            :itemMinWidth="240"
-            :itemHeight="62"
-            :gap="10"
-            :overscan="HOME_GRID_OVERSCAN"
-            :virtualThreshold="18"
-            loadingVariant="compact"
-            keyField="id"
-          >
-            <template #default="{ item: song }">
-              <SongCard
-                :song="song"
-                :active="activeSongId === String(song.id)"
-                :queueContext="styleSongs"
-                :queueOptions="styleQueueOptions"
-                :showAlbum="false"
-                :showDuration="false"
-                :showMore="false"
-                :showCoverPlayButton="true"
-                :enableDefaultDoubleTapPlay="true"
-                :onDoubleTapPlay="
-                  settingStore.playbackQueueMode === 'context'
-                    ? handleStyleSongDoubleTapPlay
-                    : undefined
-                "
-                :onCoverPlay="handleStyleSongCoverPlay"
-              />
-            </template>
-          </VirtualGrid>
-        </div>
-      </section>
+          </section>
+        </aside>
+      </div>
     </div>
 
     <UserAgreementDialog
@@ -1553,6 +1571,41 @@ const handleRejectAgreement = () => {
 
 .home-section {
   margin-top: 36px;
+}
+
+/* ── 两栏骨架：主内容 + 右侧固定栏 ── */
+.home-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 28px;
+  align-items: start;
+}
+.home-main {
+  min-width: 0;
+}
+.home-side {
+  position: sticky;
+  top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+/* 侧栏里排行榜竖着排，不再横着分三列 */
+.home-side .rank-grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 22px;
+}
+@media (max-width: 1240px) {
+  .home-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .home-side {
+    position: static;
+  }
+  .home-side .rank-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .section-header {
