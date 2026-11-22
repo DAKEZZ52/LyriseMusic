@@ -6,14 +6,15 @@ import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '@/stores/user';
 import { useSettingStore } from '@/stores/setting';
-import { getPlaylistByCategory, getTopIP } from '@/api/playlist';
+import { getPlaylistByCategory, getTopIP, getRankTop } from '@/api/playlist';
 import { getEverydayStyleRecommend, getEverydayRecommend, getPersonalFm } from '@/api/music';
 import PlaylistCard from '@/components/music/PlaylistCard.vue';
 import SongCard from '@/components/music/SongCard.vue';
 import VirtualGrid from '@/components/ui/VirtualGrid.vue';
-import { mapPlaylistMeta, mapTopSong } from '@/utils/mappers';
+import { mapPlaylistMeta, mapRankMeta, mapTopSong } from '@/utils/mappers';
 import { extractList } from '@/utils/extractors';
 import type { PlaylistMeta } from '@/models/playlist';
+import type { RankMeta } from '@/models/rank';
 import type { Song } from '@/models/song';
 import { iconPlay, iconSlidersHorizontal } from '@/icons';
 import Button from '@/components/ui/Button.vue';
@@ -60,8 +61,6 @@ const HOME_PLAYLIST_COVER_SIZE = 240;
 
 const router = useRouter();
 
-/** 顶部快捷入口用得到的几个跳转。 */
-const todayLabel = new Date().getDate().toString();
 const userStore = useUserStore();
 const settingStore = useSettingStore();
 const playlistStore = usePlaylistStore();
@@ -251,6 +250,24 @@ const fetchGuessSongs = async () => {
   }
 };
 
+/** 榜单列表：首页卡片里只列前几个名字，点进去看完整榜。 */
+const ranks = ref<RankMeta[]>([]);
+const fetchRanks = async () => {
+  try {
+    const res = await getRankTop();
+    ranks.value = extractList(res)
+      .map((item) => mapRankMeta(item))
+      .filter((item) => item.id !== 0)
+      .slice(0, 5);
+  } catch {
+    ranks.value = [];
+  }
+};
+
+const openRank = (rank: RankMeta) => {
+  router.push({ name: 'ranking', query: { rank: String(rank.id) } });
+};
+
 const playGuessSong = (song: Song) => {
   const index = Math.max(
     0,
@@ -258,6 +275,16 @@ const playGuessSong = (song: Song) => {
   );
   void replaceQueueAndPlay(playlistStore, playerStore, guessSongs.value, index, song, {
     type: 'fm',
+  });
+};
+
+const playDailySong = (song: Song) => {
+  const index = Math.max(
+    0,
+    dailySongs.value.findIndex((item) => String(item.id) === String(song.id)),
+  );
+  void replaceQueueAndPlay(playlistStore, playerStore, dailySongs.value, index, song, {
+    type: 'daily-recommend',
   });
 };
 
@@ -293,6 +320,7 @@ const startBannerTimer = () => {
 onMounted(() => {
   void fetchDailySongs();
   void fetchGuessSongs();
+  void fetchRanks();
   startBannerTimer();
 });
 onUnmounted(() => {
@@ -500,45 +528,62 @@ const handleRejectAgreement = () => {
         </template>
       </div>
 
-      <!-- 快捷入口：只放侧边栏没有的。私人 FM 和歌单广场侧边栏已有，这里重复 -->
-      <div class="quick-row">
-        <button type="button" class="quick-item" @click="openRecommend">
-          <span class="quick-icon quick-icon-orange">{{ todayLabel }}</span>
-          <span class="quick-label">每日推荐</span>
-        </button>
-        <button type="button" class="quick-item" @click="openRankingPage">
-          <span class="quick-icon quick-icon-blue">TOP</span>
-          <span class="quick-label">排行榜</span>
-        </button>
-      </div>
+      <!-- 三张入口卡：每张列出几条内容，点条目直接播 -->
+      <div class="entry-cards">
+        <!-- 每日推荐 -->
+        <section class="entry-card">
+          <header class="entry-head">
+            <span class="entry-dot entry-dot-orange" />
+            <span class="entry-title">每日推荐</span>
+            <button type="button" class="entry-more" @click="openRecommend">更多</button>
+          </header>
+          <ul v-if="dailySongs.length > 0" class="entry-list">
+            <li v-for="song in dailySongs.slice(0, 5)" :key="song.id">
+              <button type="button" class="entry-row" @click="playDailySong(song)">
+                <span class="entry-row-title">{{ song.title }}</span>
+                <span class="entry-row-sub">{{ song.artist || '未知歌手' }}</span>
+              </button>
+            </li>
+          </ul>
+          <div v-else class="entry-empty">暂无推荐</div>
+        </section>
 
-      <!-- 猜你喜欢：横滑一排，参考 QQ音乐首页的「猜你喜欢」 -->
-      <section v-if="guessSongs.length > 0" class="home-section">
-        <div class="section-header">
-          <div class="section-title">猜你喜欢</div>
-          <Button variant="unstyled" size="none" class="section-more" @click="openPersonalFm">
-            更多
-          </Button>
-        </div>
-        <div class="guess-row">
-          <button
-            v-for="song in guessSongs"
-            :key="song.id"
-            type="button"
-            class="guess-card"
-            @click="playGuessSong(song)"
-          >
-            <div class="guess-cover">
-              <img v-if="song.coverUrl" :src="song.coverUrl" alt="" />
-              <span class="guess-play">
-                <Icon :icon="iconPlay" width="16" height="16" />
-              </span>
-            </div>
-            <div class="guess-title">{{ song.title }}</div>
-            <div class="guess-sub">{{ song.artist || '未知歌手' }}</div>
-          </button>
-        </div>
-      </section>
+        <!-- 排行榜 -->
+        <section class="entry-card">
+          <header class="entry-head">
+            <span class="entry-dot entry-dot-blue" />
+            <span class="entry-title">排行榜</span>
+            <button type="button" class="entry-more" @click="openRankingPage">更多</button>
+          </header>
+          <ul v-if="ranks.length > 0" class="entry-list">
+            <li v-for="rank in ranks" :key="rank.id">
+              <button type="button" class="entry-row" @click="openRank(rank)">
+                <span class="entry-row-title">{{ rank.name }}</span>
+                <span class="entry-row-sub">{{ rank.updateFrequency || '实时更新' }}</span>
+              </button>
+            </li>
+          </ul>
+          <div v-else class="entry-empty">暂无榜单</div>
+        </section>
+
+        <!-- 猜你喜欢 -->
+        <section class="entry-card">
+          <header class="entry-head">
+            <span class="entry-dot entry-dot-purple" />
+            <span class="entry-title">猜你喜欢</span>
+            <button type="button" class="entry-more" @click="openPersonalFm">更多</button>
+          </header>
+          <ul v-if="guessSongs.length > 0" class="entry-list">
+            <li v-for="song in guessSongs.slice(0, 5)" :key="song.id">
+              <button type="button" class="entry-row" @click="playGuessSong(song)">
+                <span class="entry-row-title">{{ song.title }}</span>
+                <span class="entry-row-sub">{{ song.artist || '未知歌手' }}</span>
+              </button>
+            </li>
+          </ul>
+          <div v-else class="entry-empty">暂无推荐</div>
+        </section>
+      </div>
 
       <section class="home-section">
         <div class="section-header">
@@ -865,136 +910,110 @@ const handleRejectAgreement = () => {
 }
 
 /* ── 快捷入口四宫格 ── */
-.quick-row {
+/* ── 三张入口卡 ── */
+.entry-cards {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
   margin-bottom: 30px;
 }
-.quick-item {
+@media (max-width: 900px) {
+  .entry-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.entry-card {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
-  border-radius: 14px;
+  flex-direction: column;
+  min-width: 0;
+  padding: 14px 16px 10px;
+  border-radius: 16px;
   border: 1px solid var(--content-panel-border);
   background: var(--content-panel-bg);
-  cursor: pointer;
-  transition: background-color 0.18s ease;
-  min-width: 0;
 }
-.quick-item:hover {
-  background: var(--content-selected-bg);
-}
-.quick-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
+.entry-head {
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-weight: 700;
-  font-size: 15px;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.entry-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
   flex-shrink: 0;
 }
-.quick-icon-orange {
+.entry-dot-orange {
   background: linear-gradient(135deg, #ff8a3d, #f4511e);
 }
-.quick-icon-purple {
-  background: linear-gradient(135deg, #a855f7, #6d28d9);
-}
-.quick-icon-blue {
+.entry-dot-blue {
   background: linear-gradient(135deg, #4facfe, #0071e3);
 }
-.quick-icon-green {
-  background: linear-gradient(135deg, #34d399, #059669);
+.entry-dot-purple {
+  background: linear-gradient(135deg, #a855f7, #6d28d9);
 }
-.quick-label {
+.entry-title {
+  flex: 1;
+  min-width: 0;
   font-size: 13px;
   font-weight: 600;
   color: var(--text-main);
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
 }
-
-/* ── 猜你喜欢：横滑一排 ── */
-.guess-row {
-  display: flex;
-  gap: 16px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding-bottom: 6px;
-  scrollbar-width: thin;
+.entry-more {
+  flex-shrink: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
 }
-.guess-card {
-  flex: 0 0 150px;
+.entry-more:hover {
+  color: var(--color-primary);
+}
+.entry-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  margin: 0;
   padding: 0;
+  list-style: none;
+}
+.entry-row {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 100%;
+  padding: 6px 0;
   border: 0;
   background: transparent;
   text-align: left;
   cursor: pointer;
+  min-width: 0;
 }
-.guess-cover {
-  position: relative;
-  width: 150px;
-  height: 150px;
-  border-radius: 14px;
-  overflow: hidden;
-  background: var(--content-panel-bg);
-  border: 1px solid var(--content-panel-border);
-}
-.guess-cover img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  transition: transform 0.25s ease;
-}
-.guess-card:hover .guess-cover img {
-  transform: scale(1.04);
-}
-.guess-play {
-  position: absolute;
-  right: 8px;
-  bottom: 8px;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-on-primary, #fff);
-  background: color-mix(in srgb, var(--color-primary) 88%, transparent);
-  opacity: 0;
-  transform: translateY(4px);
-  transition:
-    opacity 0.18s ease,
-    transform 0.18s ease;
-}
-.guess-card:hover .guess-play {
-  opacity: 1;
-  transform: translateY(0);
-}
-.guess-title {
-  font-size: 13px;
-  font-weight: 600;
+.entry-row-title {
+  font-size: 12px;
   color: var(--text-main);
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  transition: color 0.15s ease;
 }
-.guess-sub {
-  font-size: 11px;
+.entry-row:hover .entry-row-title {
+  color: var(--color-primary);
+}
+.entry-row-sub {
+  font-size: 10px;
   color: var(--text-secondary);
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+.entry-empty {
+  padding: 14px 0;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
 .section-more {
   font-size: 12px;
   color: var(--text-secondary);
