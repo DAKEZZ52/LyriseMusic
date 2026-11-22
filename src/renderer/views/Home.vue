@@ -310,6 +310,26 @@ const scrollNew = (direction: number) => {
   el.scrollBy({ left: direction * el.clientWidth * 0.8, behavior: 'smooth' });
 };
 
+/** 缓慢自动滚动：每 3.6 秒往前挪一张卡，到头回到开头；悬停或手动操作时暂停。 */
+const newAutoPaused = ref(false);
+let newAutoTimer: ReturnType<typeof setInterval> | null = null;
+
+const startNewAutoScroll = () => {
+  if (newAutoTimer) clearInterval(newAutoTimer);
+  newAutoTimer = setInterval(() => {
+    const el = newListRef.value;
+    if (!el || newAutoPaused.value) return;
+    const max = el.scrollWidth - el.clientWidth;
+    if (max <= 4) return;
+    if (el.scrollLeft >= max - 4) {
+      el.scrollTo({ left: 0, behavior: 'smooth' });
+    } else {
+      // 一张卡 110 + 间距 12
+      el.scrollBy({ left: 122, behavior: 'smooth' });
+    }
+  }, 3600);
+};
+
 /** 面板底部三个功能入口。 */
 const openFeature = (name: 'score' | 'chatroom-list' | 'separator') => {
   router.push({ name });
@@ -383,9 +403,11 @@ onMounted(() => {
   void fetchRanks();
   void fetchNewSongs();
   startBannerTimer();
+  startNewAutoScroll();
 });
 onUnmounted(() => {
   if (bannerTimer) clearInterval(bannerTimer);
+  if (newAutoTimer) clearInterval(newAutoTimer);
 });
 
 const resolvePlaylistRouteId = (entry: PlaylistMeta) =>
@@ -625,7 +647,11 @@ const handleRejectAgreement = () => {
             <div class="section-header new-panel-head">
               <div class="section-title">最新音乐</div>
             </div>
-            <div class="new-scroll">
+            <div
+              class="new-scroll"
+              @mouseenter="newAutoPaused = true"
+              @mouseleave="newAutoPaused = false"
+            >
               <ul ref="newListRef" class="new-list">
                 <li v-for="song in newSongs" :key="song.id">
                   <button
