@@ -312,7 +312,7 @@ const fetchNewSongs = async () => {
     const res = await getNewSongs();
     newSongs.value = extractList(res)
       .map((item) => mapTopSong(item))
-      .slice(0, 10);
+      .slice(0, 8);
   } catch {
     newSongs.value = [];
   }
@@ -324,7 +324,7 @@ const fetchNewAlbums = async () => {
     newAlbums.value = extractList(res)
       .map((item) => mapAlbumMeta(item))
       .filter((item) => item.id !== 0)
-      .slice(0, 6);
+      .slice(0, 4);
   } catch {
     newAlbums.value = [];
   }
@@ -721,46 +721,6 @@ const handleRejectAgreement = () => {
         </VirtualGrid>
       </section>
 
-      <!-- 最新音乐：左边新歌列表，右边新碟上架 -->
-      <section v-if="newSongs.length > 0 || newAlbums.length > 0" class="home-section">
-        <div class="section-header">
-          <div class="section-title">最新音乐</div>
-        </div>
-        <div class="new-music">
-          <div v-if="newSongs.length > 0" class="new-songs">
-            <div class="new-sub-title">新歌速递</div>
-            <div class="new-song-list">
-              <button
-                v-for="song in newSongs"
-                :key="song.id"
-                type="button"
-                class="new-song-row"
-                @click="playNewSong(song)"
-              >
-                <img v-if="song.coverUrl" class="new-song-cover" :src="song.coverUrl" alt="" />
-                <span class="new-song-main">
-                  <span class="new-song-name">{{ song.title }}</span>
-                  <span class="new-song-artist">{{ song.artist || '未知歌手' }}</span>
-                </span>
-              </button>
-            </div>
-          </div>
-          <div v-if="newAlbums.length > 0" class="new-albums">
-            <div class="new-sub-title">新碟上架</div>
-            <div class="new-album-grid">
-              <AlbumCard
-                v-for="album in newAlbums"
-                :key="album.id"
-                :id="album.id"
-                :name="album.name"
-                :coverUrl="album.pic"
-                :artist="album.singerName"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
       <section class="home-section style-recommend-section">
         <div class="section-header">
           <div>
@@ -860,6 +820,46 @@ const handleRejectAgreement = () => {
         </div>
       </section>
 
+      <!-- 最新音乐：左边新歌列表，右边新碟上架 -->
+      <section v-if="newSongs.length > 0 || newAlbums.length > 0" class="home-section">
+        <div class="section-header">
+          <div class="section-title">最新音乐</div>
+        </div>
+        <div class="new-music">
+          <div v-if="newSongs.length > 0" class="new-songs">
+            <div class="new-sub-title">新歌速递</div>
+            <div class="new-song-list">
+              <button
+                v-for="song in newSongs"
+                :key="song.id"
+                type="button"
+                class="new-song-row"
+                @click="playNewSong(song)"
+              >
+                <img v-if="song.coverUrl" class="new-song-cover" :src="song.coverUrl" alt="" />
+                <span class="new-song-main">
+                  <span class="new-song-name">{{ song.title }}</span>
+                  <span class="new-song-artist">{{ song.artist || '未知歌手' }}</span>
+                </span>
+              </button>
+            </div>
+          </div>
+          <div v-if="newAlbums.length > 0" class="new-albums">
+            <div class="new-sub-title">新碟上架</div>
+            <div class="new-album-grid">
+              <AlbumCard
+                v-for="album in newAlbums"
+                :key="album.id"
+                :id="album.id"
+                :name="album.name"
+                :coverUrl="album.pic"
+                :artist="album.singerName"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- 排行榜：三个榜各带前三首，不用点进去就能看见内容 -->
       <section v-if="rankPreviews && rankPreviews.length > 0" class="home-section">
         <div class="section-header">
@@ -870,11 +870,20 @@ const handleRejectAgreement = () => {
           <div v-for="preview in rankPreviews" :key="preview.rank.id" class="rank-col">
             <button type="button" class="rank-head" @click="openRank(preview.rank)">
               <img v-if="preview.rank.pic" class="rank-pic" :src="preview.rank.pic" alt="" />
-              <span class="rank-name">{{ preview.rank.name }}</span>
+              <span class="rank-head-main">
+                <span class="rank-name">{{ preview.rank.name }}</span>
+                <span class="rank-update">
+                  {{ preview.rank.updateFrequency || '实时更新' }}
+                </span>
+              </span>
+              <span class="rank-arrow">›</span>
             </button>
-            <ul class="rank-songs">
-              <li v-for="song in preview.songs || []" :key="song.id">
+            <ol class="rank-songs">
+              <li v-for="(song, index) in preview.songs || []" :key="song.id">
                 <button type="button" class="rank-song" @click="playRankSong(song, preview.songs)">
+                  <span class="rank-index" :class="{ 'rank-index-top': index === 0 }">
+                    {{ index + 1 }}
+                  </span>
                   <img v-if="song.coverUrl" class="rank-song-cover" :src="song.coverUrl" alt="" />
                   <span class="rank-song-main">
                     <span class="rank-song-name">{{ song.title }}</span>
@@ -882,7 +891,7 @@ const handleRejectAgreement = () => {
                   </span>
                 </button>
               </li>
-            </ul>
+            </ol>
           </div>
         </div>
       </section>
@@ -1225,7 +1234,7 @@ const handleRejectAgreement = () => {
 .rank-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
+  gap: 16px;
 }
 @media (max-width: 1000px) {
   .rank-grid {
@@ -1233,7 +1242,13 @@ const handleRejectAgreement = () => {
   }
 }
 .rank-col {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  padding: 14px 16px 10px;
+  border-radius: 16px;
+  border: 1px solid var(--content-panel-border);
+  background: var(--content-panel-bg);
 }
 .rank-head {
   display: flex;
@@ -1241,6 +1256,7 @@ const handleRejectAgreement = () => {
   gap: 10px;
   width: 100%;
   padding: 0 0 10px;
+  margin-bottom: 4px;
   border: 0;
   border-bottom: 1px solid var(--content-panel-border);
   background: transparent;
@@ -1248,12 +1264,19 @@ const handleRejectAgreement = () => {
   cursor: pointer;
 }
 .rank-pic {
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   object-fit: cover;
   flex-shrink: 0;
   background: var(--content-selected-bg);
+}
+.rank-head-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
 }
 .rank-name {
   font-size: 13px;
@@ -1265,6 +1288,16 @@ const handleRejectAgreement = () => {
 }
 .rank-head:hover .rank-name {
   color: var(--color-primary);
+}
+.rank-update {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+.rank-arrow {
+  flex-shrink: 0;
+  font-size: 15px;
+  color: var(--text-secondary);
+  line-height: 1;
 }
 .rank-songs {
   margin: 0;
@@ -1282,6 +1315,18 @@ const handleRejectAgreement = () => {
   text-align: left;
   cursor: pointer;
   min-width: 0;
+}
+.rank-index {
+  width: 14px;
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  text-align: center;
+}
+.rank-index-top {
+  color: var(--color-primary);
 }
 .rank-song-cover {
   width: 34px;
@@ -1335,20 +1380,15 @@ const handleRejectAgreement = () => {
 }
 .new-song-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 2px 18px;
-}
-@media (max-width: 700px) {
-  .new-song-list {
-    grid-template-columns: minmax(0, 1fr);
-  }
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
 }
 .new-song-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
-  padding: 6px 0;
+  padding: 7px 0;
   border: 0;
   background: transparent;
   text-align: left;
@@ -1356,9 +1396,9 @@ const handleRejectAgreement = () => {
   min-width: 0;
 }
 .new-song-cover {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
+  width: 44px;
+  height: 44px;
+  border-radius: 9px;
   object-fit: cover;
   flex-shrink: 0;
   background: var(--content-selected-bg);
@@ -1389,14 +1429,8 @@ const handleRejectAgreement = () => {
 }
 .new-album-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
-}
-/* 主区变窄（两栏生效）时新碟降成两列，三列会挤成邮票 */
-@media (max-width: 1240px) {
-  .new-album-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 @media (max-width: 700px) {
   .new-album-grid {
