@@ -819,17 +819,19 @@ const handleRejectAgreement = () => {
   inset: 0;
   display: flex;
   align-items: center;
-  gap: 26px;
-  padding: 0 32px;
+  /* 封面贴左边缘（羽化后不能再留内边距，否则左边缘会切出一条竖线） */
+  gap: 18px;
+  padding: 0 40px 0 0;
 }
 .banner-cover {
   /* 横幅高度约 260px，82% 后封面接近 215px，比原来 64% 更压得住画面 */
-  height: 82%;
+  height: 100%;
   aspect-ratio: 1;
   flex-shrink: 0;
   object-fit: cover;
-  border-radius: 14px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.42);
+  /* 右边缘羽化到透明，和背后的模糊图连成一片，去掉方框和投影 */
+  mask-image: linear-gradient(to right, #000 58%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, #000 58%, transparent 100%);
 }
 .banner-info {
   min-width: 0;
