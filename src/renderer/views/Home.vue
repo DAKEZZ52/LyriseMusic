@@ -7,23 +7,15 @@ import { useRouter } from 'vue-router';
 import { useUserStore } from '@/stores/user';
 import { useSettingStore } from '@/stores/setting';
 import { getPlaylistByCategory, getTopIP, getRankTop, getRankSongs } from '@/api/playlist';
-import {
-  getEverydayStyleRecommend,
-  getEverydayRecommend,
-  getPersonalFm,
-  getNewSongs,
-  getAlbumTop,
-} from '@/api/music';
+import { getEverydayStyleRecommend, getEverydayRecommend, getNewSongs } from '@/api/music';
 import PlaylistCard from '@/components/music/PlaylistCard.vue';
-import AlbumCard from '@/components/music/AlbumCard.vue';
 import SongCard from '@/components/music/SongCard.vue';
 import VirtualGrid from '@/components/ui/VirtualGrid.vue';
-import { mapPlaylistMeta, mapRankMeta, mapTopSong, mapAlbumMeta } from '@/utils/mappers';
+import { mapPlaylistMeta, mapRankMeta, mapTopSong } from '@/utils/mappers';
 import { mapRankSong } from '@/utils/mappers/song';
 import { extractList } from '@/utils/extractors';
 import type { PlaylistMeta } from '@/models/playlist';
 import type { RankMeta } from '@/models/rank';
-import type { AlbumMeta } from '@/models/album';
 import type { Song } from '@/models/song';
 import { iconPlay, iconSlidersHorizontal } from '@/icons';
 import Button from '@/components/ui/Button.vue';
@@ -226,9 +218,6 @@ const loadStyleRecommend = async (options: { useSelectedTags?: boolean } = {}) =
   }
 };
 
-const openPersonalFm = () => {
-  router.push({ name: 'personal-fm' });
-};
 const openRankingPage = () => {
   router.push({ name: 'ranking' });
 };
@@ -242,19 +231,6 @@ const fetchDailySongs = async () => {
     dailySongs.value = extractList(res).map((item) => mapTopSong(item));
   } catch {
     dailySongs.value = [];
-  }
-};
-
-/** 猜你喜欢：拿私人 FM 的前十首，横滑一排。 */
-const guessSongs = ref<Song[]>([]);
-const fetchGuessSongs = async () => {
-  try {
-    const res = await getPersonalFm();
-    guessSongs.value = extractList(res)
-      .map((item) => mapTopSong(item))
-      .slice(0, 10);
-  } catch {
-    guessSongs.value = [];
   }
 };
 
@@ -305,7 +281,6 @@ const openRank = (rank: RankMeta) => {
 
 /** 最新音乐：新歌列表 + 新碟，媒体库缺少「新」这个维度。 */
 const newSongs = ref<Song[]>([]);
-const newAlbums = ref<AlbumMeta[]>([]);
 
 const fetchNewSongs = async () => {
   try {
@@ -318,18 +293,6 @@ const fetchNewSongs = async () => {
   }
 };
 
-const fetchNewAlbums = async () => {
-  try {
-    const res = await getAlbumTop();
-    newAlbums.value = extractList(res)
-      .map((item) => mapAlbumMeta(item))
-      .filter((item) => item.id !== 0)
-      .slice(0, 4);
-  } catch {
-    newAlbums.value = [];
-  }
-};
-
 const playNewSong = (song: Song) => {
   const index = Math.max(
     0,
@@ -337,16 +300,6 @@ const playNewSong = (song: Song) => {
   );
   void replaceQueueAndPlay(playlistStore, playerStore, newSongs.value, index, song, {
     type: 'search',
-  });
-};
-
-const playGuessSong = (song: Song) => {
-  const index = Math.max(
-    0,
-    guessSongs.value.findIndex((item) => String(item.id) === String(song.id)),
-  );
-  void replaceQueueAndPlay(playlistStore, playerStore, guessSongs.value, index, song, {
-    type: 'fm',
   });
 };
 
@@ -411,10 +364,8 @@ const startBannerTimer = () => {
 
 onMounted(() => {
   void fetchDailySongs();
-  void fetchGuessSongs();
   void fetchRanks();
   void fetchNewSongs();
-  void fetchNewAlbums();
   startBannerTimer();
 });
 onUnmounted(() => {
@@ -635,19 +586,18 @@ const handleRejectAgreement = () => {
           </template>
         </div>
 
-        <!-- 猜你喜欢：右半边，紧凑列表和轮播同高 -->
-        <section v-if="guessSongs.length > 0" class="guess-panel">
+        <!-- 最新音乐：右半边，紧凑列表和轮播同高 -->
+        <section v-if="newSongs.length > 0" class="new-panel">
           <div class="section-header">
-            <div class="section-title">猜你喜欢</div>
-            <button type="button" class="section-more" @click="openPersonalFm">更多</button>
+            <div class="section-title">最新音乐</div>
           </div>
-          <ul class="guess-list">
-            <li v-for="song in guessSongs.slice(0, 5)" :key="song.id">
-              <button type="button" class="guess-item" @click="playGuessSong(song)">
-                <img v-if="song.coverUrl" class="guess-item-cover" :src="song.coverUrl" alt="" />
-                <span class="guess-item-main">
-                  <span class="guess-item-name">{{ song.title }}</span>
-                  <span class="guess-item-artist">{{ song.artist || '未知歌手' }}</span>
+          <ul class="new-list">
+            <li v-for="song in newSongs.slice(0, 5)" :key="song.id">
+              <button type="button" class="new-item" @click="playNewSong(song)">
+                <img v-if="song.coverUrl" class="new-item-cover" :src="song.coverUrl" alt="" />
+                <span class="new-item-main">
+                  <span class="new-item-name">{{ song.title }}</span>
+                  <span class="new-item-artist">{{ song.artist || '未知歌手' }}</span>
                 </span>
               </button>
             </li>
@@ -853,45 +803,6 @@ const handleRejectAgreement = () => {
             <PlaylistCard v-bind="item" :coverSize="HOME_PLAYLIST_COVER_SIZE" layout="grid" />
           </template>
         </VirtualGrid>
-      </section>
-
-      <section v-if="newSongs.length > 0 || newAlbums.length > 0" class="home-section">
-        <div class="section-header">
-          <div class="section-title">最新音乐</div>
-        </div>
-        <div class="new-music">
-          <div v-if="newSongs.length > 0" class="new-songs">
-            <div class="new-sub-title">新歌速递</div>
-            <div class="new-song-list">
-              <button
-                v-for="song in newSongs"
-                :key="song.id"
-                type="button"
-                class="new-song-row"
-                @click="playNewSong(song)"
-              >
-                <img v-if="song.coverUrl" class="new-song-cover" :src="song.coverUrl" alt="" />
-                <span class="new-song-main">
-                  <span class="new-song-name">{{ song.title }}</span>
-                  <span class="new-song-artist">{{ song.artist || '未知歌手' }}</span>
-                </span>
-              </button>
-            </div>
-          </div>
-          <div v-if="newAlbums.length > 0" class="new-albums">
-            <div class="new-sub-title">新碟上架</div>
-            <div class="new-album-grid">
-              <AlbumCard
-                v-for="album in newAlbums"
-                :key="album.id"
-                :id="album.id"
-                :name="album.name"
-                :coverUrl="album.pic"
-                :artist="album.singerName"
-              />
-            </div>
-          </div>
-        </div>
       </section>
     </div>
 
@@ -1151,83 +1062,6 @@ const handleRejectAgreement = () => {
   transform: scale(1.06);
 }
 
-/* ── 猜你喜欢：横滑一排 ── */
-.guess-row {
-  display: flex;
-  gap: 16px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding-bottom: 6px;
-  scrollbar-width: thin;
-}
-.guess-card {
-  flex: 0 0 150px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  text-align: left;
-  cursor: pointer;
-}
-.guess-cover {
-  position: relative;
-  width: 150px;
-  height: 150px;
-  border-radius: 14px;
-  overflow: hidden;
-  background: var(--content-panel-bg);
-  border: 1px solid var(--content-panel-border);
-}
-.guess-cover img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  transition: transform 0.25s ease;
-}
-.guess-card:hover .guess-cover img {
-  transform: scale(1.04);
-}
-.guess-play {
-  position: absolute;
-  right: 8px;
-  bottom: 8px;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-on-primary, #fff);
-  background: color-mix(in srgb, var(--color-primary) 88%, transparent);
-  opacity: 0;
-  transform: translateY(4px);
-  transition:
-    opacity 0.18s ease,
-    transform 0.18s ease;
-}
-.guess-card:hover .guess-play {
-  opacity: 1;
-  transform: translateY(0);
-}
-.guess-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-main);
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-.guess-sub {
-  font-size: 11px;
-  color: var(--text-secondary);
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
 /* ── 排行榜：三个榜各带前三首 ── */
 .rank-grid {
   display: grid;
@@ -1359,83 +1193,6 @@ const handleRejectAgreement = () => {
   text-overflow: ellipsis;
 }
 
-/* ── 最新音乐：新歌 + 新碟 ── */
-.new-music {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-  gap: 24px;
-}
-@media (max-width: 1000px) {
-  .new-music {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-.new-sub-title {
-  margin-bottom: 10px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-.new-song-list {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 2px;
-}
-.new-song-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 7px 0;
-  border: 0;
-  background: transparent;
-  text-align: left;
-  cursor: pointer;
-  min-width: 0;
-}
-.new-song-cover {
-  width: 44px;
-  height: 44px;
-  border-radius: 9px;
-  object-fit: cover;
-  flex-shrink: 0;
-  background: var(--content-selected-bg);
-}
-.new-song-main {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-}
-.new-song-name {
-  font-size: 12px;
-  color: var(--text-main);
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  transition: color 0.15s ease;
-}
-.new-song-row:hover .new-song-name {
-  color: var(--color-primary);
-}
-.new-song-artist {
-  font-size: 11px;
-  color: var(--text-secondary);
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-.new-album-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-}
-@media (max-width: 700px) {
-  .new-album-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
 .section-more {
   font-size: 12px;
   color: var(--text-secondary);
@@ -1443,12 +1200,6 @@ const handleRejectAgreement = () => {
 }
 .section-more:hover {
   color: var(--color-primary);
-}
-@media (prefers-reduced-motion: reduce) {
-  .guess-cover img,
-  .guess-play {
-    transition: none;
-  }
 }
 
 /* 轮播右侧的快捷入口 */
@@ -1609,7 +1360,7 @@ const handleRejectAgreement = () => {
   margin-bottom: 0;
   height: 100%;
 }
-.guess-panel {
+.new-panel {
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -1618,10 +1369,10 @@ const handleRejectAgreement = () => {
   border: 1px solid var(--content-panel-border);
   background: var(--content-panel-bg);
 }
-.guess-panel .section-title {
+.new-panel .section-title {
   font-size: 14px;
 }
-.guess-list {
+.new-list {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -1630,7 +1381,7 @@ const handleRejectAgreement = () => {
   padding: 0;
   list-style: none;
 }
-.guess-item {
+.new-item {
   display: flex;
   align-items: center;
   gap: 11px;
@@ -1642,7 +1393,7 @@ const handleRejectAgreement = () => {
   cursor: pointer;
   min-width: 0;
 }
-.guess-item-cover {
+.new-item-cover {
   width: 44px;
   height: 44px;
   border-radius: 9px;
@@ -1650,13 +1401,13 @@ const handleRejectAgreement = () => {
   flex-shrink: 0;
   background: var(--content-selected-bg);
 }
-.guess-item-main {
+.new-item-main {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
 }
-.guess-item-name {
+.new-item-name {
   font-size: 13px;
   color: var(--text-main);
   overflow: hidden;
@@ -1664,10 +1415,10 @@ const handleRejectAgreement = () => {
   text-overflow: ellipsis;
   transition: color 0.15s ease;
 }
-.guess-item:hover .guess-item-name {
+.new-item:hover .new-item-name {
   color: var(--color-primary);
 }
-.guess-item-artist {
+.new-item-artist {
   font-size: 11px;
   color: var(--text-secondary);
   overflow: hidden;
