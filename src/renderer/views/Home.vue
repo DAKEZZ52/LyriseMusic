@@ -560,9 +560,9 @@ const handleRejectAgreement = () => {
                 class="banner-backdrop"
                 :style="{ backgroundImage: `url(${item.pic})` }"
               />
-              <div class="banner-scrim" />
+              <!-- 封面必须放在 content 外面，否则 absolute 会相对底部通栏定位，只铺下半截 -->
+              <img v-if="item.pic" :src="item.pic" class="banner-cover" alt="" />
               <div class="banner-content">
-                <img v-if="item.pic" :src="item.pic" class="banner-cover" alt="" />
                 <div class="banner-info">
                   <div class="banner-title">{{ item.name }}</div>
                   <div class="banner-sub">
@@ -890,16 +890,6 @@ const handleRejectAgreement = () => {
   /* 放大一点再模糊，避免边缘露出底色 */
   transform: scale(1.2);
   filter: blur(38px) saturate(1.4);
-}
-.banner-scrim {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    90deg,
-    rgba(0, 0, 0, 0.72) 0%,
-    rgba(0, 0, 0, 0.45) 42%,
-    rgba(0, 0, 0, 0.18) 100%
-  );
 }
 .banner-content {
   /* 底部通栏：横跨整个轮播宽度，压在渐变遮罩上 */
