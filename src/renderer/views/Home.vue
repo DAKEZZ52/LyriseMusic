@@ -303,16 +303,6 @@ const playNewSong = (song: Song) => {
   });
 };
 
-const playDailySong = (song: Song) => {
-  const index = Math.max(
-    0,
-    dailySongs.value.findIndex((item) => String(item.id) === String(song.id)),
-  );
-  void replaceQueueAndPlay(playlistStore, playerStore, dailySongs.value, index, song, {
-    type: 'daily-recommend',
-  });
-};
-
 /** 每日推荐大卡上的「播放全部」。 */
 const todayLabel = new Date().getDate().toString();
 const playAllDaily = () => {
@@ -612,35 +602,26 @@ const handleRejectAgreement = () => {
               </button>
             </li>
           </ul>
+
+          <!-- 每日推荐：并进同一张面板，只留文字和播放按钮，不放封面墙 -->
+          <div v-if="dailySongs.length > 0" class="daily-inline">
+            <div class="daily-badge">
+              <span class="daily-day">{{ todayLabel }}</span>
+              <span class="daily-month">日</span>
+            </div>
+            <div class="daily-inline-main">
+              <div class="daily-title">每日推荐</div>
+              <div class="daily-sub">根据你的口味，今天为你准备了 {{ dailySongs.length }} 首</div>
+            </div>
+            <button type="button" class="daily-play" @click="playAllDaily">
+              <Icon :icon="iconPlay" width="13" height="13" />
+              <span>播放全部</span>
+            </button>
+          </div>
         </section>
       </div>
 
-      <!-- 每日推荐：参考网易云，日期 + 说明 + 播放全部 + 封面墙 -->
-      <section v-if="dailySongs.length > 0" class="daily-hero">
-        <div class="daily-badge">
-          <span class="daily-day">{{ todayLabel }}</span>
-          <span class="daily-month">日</span>
-        </div>
-        <div class="daily-info">
-          <div class="daily-title">每日推荐</div>
-          <div class="daily-sub">根据你的口味，今天为你准备了 {{ dailySongs.length }} 首</div>
-          <button type="button" class="daily-play" @click="playAllDaily">
-            <Icon :icon="iconPlay" width="14" height="14" />
-            <span>播放全部</span>
-          </button>
-        </div>
-        <div class="daily-covers">
-          <button
-            v-for="song in dailySongs.slice(0, 5)"
-            :key="song.id"
-            type="button"
-            class="daily-cover"
-            @click="playDailySong(song)"
-          >
-            <img v-if="song.coverUrl" :src="song.coverUrl" alt="" />
-          </button>
-        </div>
-      </section>
+      <!-- 每日推荐已经并进右侧「最新音乐」面板 -->
 
       <section class="home-section style-recommend-section">
         <div class="section-header">
@@ -977,21 +958,20 @@ const handleRejectAgreement = () => {
 
 /* ── 快捷入口四宫格 ── */
 /* ── 每日推荐大卡 ── */
-.daily-hero {
+/* ── 面板内的每日推荐行 ── */
+.daily-inline {
   display: flex;
   align-items: center;
-  gap: 22px;
-  padding: 20px 24px;
-  margin-bottom: 28px;
-  border-radius: 18px;
-  border: 1px solid var(--content-panel-border);
-  background: var(--content-panel-bg);
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--content-panel-border);
 }
 .daily-badge {
   flex-shrink: 0;
-  width: 62px;
-  height: 68px;
-  border-radius: 14px;
+  width: 40px;
+  height: 44px;
+  border-radius: 10px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -999,19 +979,19 @@ const handleRejectAgreement = () => {
   color: #fff;
   background: linear-gradient(135deg, #ff8a3d, #f4511e);
 }
+.daily-inline-main {
+  flex: 1;
+  min-width: 0;
+}
 .daily-day {
-  font-size: 26px;
+  font-size: 18px;
   font-weight: 700;
   line-height: 1;
 }
 .daily-month {
-  margin-top: 3px;
-  font-size: 11px;
+  margin-top: 1px;
+  font-size: 9px;
   opacity: 0.9;
-}
-.daily-info {
-  flex: 1;
-  min-width: 0;
 }
 .daily-title {
   font-size: 17px;
@@ -1040,38 +1020,6 @@ const handleRejectAgreement = () => {
 .daily-play:hover {
   opacity: 0.9;
 }
-.daily-covers {
-  display: flex;
-  gap: 10px;
-  flex-shrink: 0;
-}
-@media (max-width: 900px) {
-  .daily-covers {
-    display: none;
-  }
-}
-.daily-cover {
-  width: 64px;
-  height: 64px;
-  padding: 0;
-  border: 0;
-  border-radius: 10px;
-  overflow: hidden;
-  cursor: pointer;
-  background: var(--content-selected-bg);
-  flex-shrink: 0;
-}
-.daily-cover img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  transition: transform 0.2s ease;
-}
-.daily-cover:hover img {
-  transform: scale(1.06);
-}
-
 /* ── 排行榜：三个榜各带前三首 ── */
 .rank-grid {
   display: grid;
