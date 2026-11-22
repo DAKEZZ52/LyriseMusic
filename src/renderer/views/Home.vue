@@ -17,7 +17,15 @@ import { extractList } from '@/utils/extractors';
 import type { PlaylistMeta } from '@/models/playlist';
 import type { RankMeta } from '@/models/rank';
 import type { Song } from '@/models/song';
-import { iconPlay, iconSlidersHorizontal } from '@/icons';
+import {
+  iconChevronLeft,
+  iconChevronRight,
+  iconMicrophone,
+  iconMusic,
+  iconPlay,
+  iconScissors,
+  iconSlidersHorizontal,
+} from '@/icons';
 import Button from '@/components/ui/Button.vue';
 import UserAgreementDialog from '@/components/app/UserAgreementDialog.vue';
 import PageScrollContainer from '@/components/ui/PageScrollContainer.vue';
@@ -291,6 +299,19 @@ const fetchNewSongs = async () => {
   } catch {
     newSongs.value = [];
   }
+};
+
+/** 最新音乐横滑：左右按钮按容器宽度翻页。 */
+const newListRef = ref<HTMLElement | null>(null);
+const scrollNew = (direction: number) => {
+  const el = newListRef.value;
+  if (!el) return;
+  el.scrollBy({ left: direction * el.clientWidth * 0.8, behavior: 'smooth' });
+};
+
+/** 面板底部三个功能入口。 */
+const openFeature = (name: 'score' | 'chatroom-list' | 'separator') => {
+  router.push({ name });
 };
 
 const playNewSong = (song: Song) => {
@@ -599,28 +620,62 @@ const handleRejectAgreement = () => {
             <div class="section-header new-panel-head">
               <div class="section-title">最新音乐</div>
             </div>
-            <ul class="new-list">
-              <li v-for="song in newSongs" :key="song.id">
-                <button
-                  type="button"
-                  class="new-item"
-                  :class="{ 'is-active': activeSongId === String(song.id) }"
-                  @click="playNewSong(song)"
-                >
-                  <img v-if="song.coverUrl" class="new-item-cover" :src="song.coverUrl" alt="" />
-                  <span class="new-item-main">
-                    <span class="new-item-name">{{ song.title }}</span>
-                    <span class="new-item-artist">{{ song.artist || '未知歌手' }}</span>
-                  </span>
-                  <span v-if="activeSongId === String(song.id)" class="new-item-wave">
-                    <i />
-                    <i />
-                    <i />
-                  </span>
-                </button>
-              </li>
-            </ul>
+            <div class="new-scroll">
+              <ul ref="newListRef" class="new-list">
+                <li v-for="song in newSongs" :key="song.id">
+                  <button
+                    type="button"
+                    class="new-item"
+                    :class="{ 'is-active': activeSongId === String(song.id) }"
+                    @click="playNewSong(song)"
+                  >
+                    <img v-if="song.coverUrl" class="new-item-cover" :src="song.coverUrl" alt="" />
+                    <span class="new-item-main">
+                      <span class="new-item-name">{{ song.title }}</span>
+                      <span class="new-item-artist">{{ song.artist || '未知歌手' }}</span>
+                    </span>
+                    <span v-if="activeSongId === String(song.id)" class="new-item-wave">
+                      <i />
+                      <i />
+                      <i />
+                    </span>
+                  </button>
+                </li>
+              </ul>
+              <button
+                type="button"
+                class="new-nav new-nav-prev"
+                aria-label="往前翻"
+                @click="scrollNew(-1)"
+              >
+                <Icon :icon="iconChevronLeft" width="16" height="16" />
+              </button>
+              <button
+                type="button"
+                class="new-nav new-nav-next"
+                aria-label="往后翻"
+                @click="scrollNew(1)"
+              >
+                <Icon :icon="iconChevronRight" width="16" height="16" />
+              </button>
+            </div>
           </template>
+
+          <!-- 功能入口：简谱 / 语聊房 / 人声分离 -->
+          <div class="feature-row">
+            <button type="button" class="feature-item" @click="openFeature('score')">
+              <Icon :icon="iconMusic" width="15" height="15" />
+              <span>简谱</span>
+            </button>
+            <button type="button" class="feature-item" @click="openFeature('chatroom-list')">
+              <Icon :icon="iconMicrophone" width="15" height="15" />
+              <span>语聊房</span>
+            </button>
+            <button type="button" class="feature-item" @click="openFeature('separator')">
+              <Icon :icon="iconScissors" width="15" height="15" />
+              <span>人声分离</span>
+            </button>
+          </div>
         </section>
       </div>
 
@@ -1338,6 +1393,46 @@ const handleRejectAgreement = () => {
   font-size: 12px;
   color: var(--text-secondary);
 }
+/* 横滑容器：按钮浮在两侧，只有悬停时出现 */
+.new-scroll {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+.new-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--content-panel-border);
+  border-radius: 50%;
+  background: var(--content-panel-bg);
+  color: var(--text-main);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  z-index: 2;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+.new-nav-prev {
+  left: -6px;
+}
+.new-nav-next {
+  right: -6px;
+}
+.new-scroll:hover .new-nav {
+  opacity: 1;
+}
+.new-nav:hover {
+  background: var(--content-selected-bg);
+}
+
 .new-list {
   flex: 1;
   display: flex;
@@ -1455,6 +1550,36 @@ const handleRejectAgreement = () => {
 .new-item:hover .new-item-name {
   color: var(--color-primary);
 }
+/* ── 面板底部功能入口 ── */
+.feature-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--content-panel-border);
+}
+.feature-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 0;
+  border: 1px solid var(--content-panel-border);
+  border-radius: 10px;
+  background: transparent;
+  font-size: 12px;
+  color: var(--text-main);
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+.feature-item:hover {
+  background: var(--content-selected-bg);
+  color: var(--color-primary);
+}
+
 .new-item-artist {
   font-size: 10px;
   color: var(--text-secondary);
