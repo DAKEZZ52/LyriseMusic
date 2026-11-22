@@ -6,6 +6,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '@/stores/user';
 import { useSettingStore } from '@/stores/setting';
+import { useThemeStore } from '@/stores/theme';
 import { getPlaylistByCategory, getTopIP, getRankTop, getRankSongs } from '@/api/playlist';
 import { getEverydayStyleRecommend, getEverydayRecommend, getNewSongs } from '@/api/music';
 import PlaylistCard from '@/components/music/PlaylistCard.vue';
@@ -313,6 +314,10 @@ const scrollNew = (direction: number) => {
 const openFeature = (name: 'score' | 'chatroom-list' | 'separator') => {
   router.push({ name });
 };
+
+/** 按钮配色跟着当前歌曲封面走，没取到色时回落到主题色。 */
+const themeStore = useThemeStore();
+const featureTint = computed(() => themeStore.coverColor || '');
 
 const playNewSong = (song: Song) => {
   const index = Math.max(
@@ -661,18 +666,21 @@ const handleRejectAgreement = () => {
             </div>
           </template>
 
-          <!-- 功能入口：简谱 / 语聊房 / 人声分离 -->
-          <div class="feature-row">
+          <!-- 功能入口：简谱 / 语聊房 / 人声分离，配色跟随当前歌曲封面 -->
+          <div
+            class="feature-row"
+            :style="featureTint ? { '--feature-tint': featureTint } : undefined"
+          >
             <button type="button" class="feature-item" @click="openFeature('score')">
-              <Icon :icon="iconMusic" width="15" height="15" />
+              <Icon :icon="iconMusic" width="16" height="16" />
               <span>简谱</span>
             </button>
             <button type="button" class="feature-item" @click="openFeature('chatroom-list')">
-              <Icon :icon="iconMicrophone" width="15" height="15" />
+              <Icon :icon="iconMicrophone" width="16" height="16" />
               <span>语聊房</span>
             </button>
             <button type="button" class="feature-item" @click="openFeature('separator')">
-              <Icon :icon="iconScissors" width="15" height="15" />
+              <Icon :icon="iconScissors" width="16" height="16" />
               <span>人声分离</span>
             </button>
           </div>
@@ -1554,30 +1562,40 @@ const handleRejectAgreement = () => {
 .feature-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 14px;
-  padding-top: 14px;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 16px;
   border-top: 1px solid var(--content-panel-border);
 }
 .feature-item {
+  /* 未取到封面色时回落到主题色 */
+  --tint: var(--feature-tint, var(--color-primary));
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 9px 0;
-  border: 1px solid var(--content-panel-border);
-  border-radius: 10px;
-  background: transparent;
-  font-size: 12px;
-  color: var(--text-main);
+  gap: 7px;
+  padding: 14px 0;
+  border: 1px solid color-mix(in srgb, var(--tint) 34%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--tint) 9%, transparent);
+  font-size: 13px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--tint) 82%, var(--text-main));
   cursor: pointer;
   transition:
-    background-color 0.18s ease,
-    color 0.18s ease;
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
 }
 .feature-item:hover {
-  background: var(--content-selected-bg);
-  color: var(--color-primary);
+  background: color-mix(in srgb, var(--tint) 18%, transparent);
+  border-color: color-mix(in srgb, var(--tint) 52%, transparent);
+  transform: translateY(-1px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .feature-item:hover {
+    transform: none;
+  }
 }
 
 .new-item-artist {
