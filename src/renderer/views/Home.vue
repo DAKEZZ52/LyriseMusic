@@ -905,10 +905,11 @@ const handleRejectAgreement = () => {
   position: absolute;
   inset: 0;
   display: flex;
-  align-items: center;
+  /* 文字统一压在底部，避开右下角的圆点指示器 */
+  align-items: flex-end;
   /* 封面贴左边缘（羽化后不能再留内边距，否则左边缘会切出一条竖线） */
   gap: 18px;
-  padding: 0 40px 0 0;
+  padding: 0 32px 34px 0;
 }
 .banner-cover {
   /* 横幅高度约 260px，82% 后封面接近 215px，比原来 64% 更压得住画面 */
@@ -922,23 +923,27 @@ const handleRejectAgreement = () => {
 }
 .banner-info {
   min-width: 0;
+  flex: 1;
   text-align: left;
 }
 .banner-title {
   font-size: 22px;
   font-weight: 700;
+  line-height: 1.3;
   color: #fff;
+  /* 标题过长自动换行，不再被省略号截断 */
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
 }
 .banner-sub {
   margin-top: 6px;
   font-size: 12px;
+  line-height: 1.45;
   color: rgba(255, 255, 255, 0.78);
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 
 .banner-dots {
