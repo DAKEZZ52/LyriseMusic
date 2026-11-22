@@ -7,14 +7,22 @@ import { useRouter } from 'vue-router';
 import { useUserStore } from '@/stores/user';
 import { useSettingStore } from '@/stores/setting';
 import { getPlaylistByCategory, getTopIP, getRankTop } from '@/api/playlist';
-import { getEverydayStyleRecommend, getEverydayRecommend, getPersonalFm } from '@/api/music';
+import {
+  getEverydayStyleRecommend,
+  getEverydayRecommend,
+  getPersonalFm,
+  getNewSongs,
+  getAlbumTop,
+} from '@/api/music';
 import PlaylistCard from '@/components/music/PlaylistCard.vue';
+import AlbumCard from '@/components/music/AlbumCard.vue';
 import SongCard from '@/components/music/SongCard.vue';
 import VirtualGrid from '@/components/ui/VirtualGrid.vue';
-import { mapPlaylistMeta, mapRankMeta, mapTopSong } from '@/utils/mappers';
+import { mapPlaylistMeta, mapRankMeta, mapTopSong, mapAlbumMeta } from '@/utils/mappers';
 import { extractList } from '@/utils/extractors';
 import type { PlaylistMeta } from '@/models/playlist';
 import type { RankMeta } from '@/models/rank';
+import type { AlbumMeta } from '@/models/album';
 import type { Song } from '@/models/song';
 import { iconCalendar, iconPlay, iconSlidersHorizontal, iconSparkles, iconTrophy } from '@/icons';
 import Button from '@/components/ui/Button.vue';
@@ -54,6 +62,8 @@ interface StyleRecommendGroup {
 const RECOMMEND_PLAYLIST_CATEGORIES = [
   { id: '0', label: '推荐' },
   { id: '11292', label: 'Hi-Res' },
+  // 原本是独立的「编辑精选」区块，并进这里当一个分类，少一个重复网格
+  { id: 'editor', label: '编辑精选' },
 ] as const;
 const HOME_GRID_VIRTUAL_THRESHOLD = 12;
 const HOME_GRID_OVERSCAN = 1;
@@ -268,6 +278,43 @@ const openRank = (rank: RankMeta) => {
   router.push({ name: 'ranking', query: { rank: String(rank.id) } });
 };
 
+/** 最新音乐：新歌列表 + 新碟，媒体库缺少「新」这个维度。 */
+const newSongs = ref<Song[]>([]);
+const newAlbums = ref<AlbumMeta[]>([]);
+
+const fetchNewSongs = async () => {
+  try {
+    const res = await getNewSongs();
+    newSongs.value = extractList(res)
+      .map((item) => mapTopSong(item))
+      .slice(0, 10);
+  } catch {
+    newSongs.value = [];
+  }
+};
+
+const fetchNewAlbums = async () => {
+  try {
+    const res = await getAlbumTop();
+    newAlbums.value = extractList(res)
+      .map((item) => mapAlbumMeta(item))
+      .filter((item) => item.id !== 0)
+      .slice(0, 6);
+  } catch {
+    newAlbums.value = [];
+  }
+};
+
+const playNewSong = (song: Song) => {
+  const index = Math.max(
+    0,
+    newSongs.value.findIndex((item) => String(item.id) === String(song.id)),
+  );
+  void replaceQueueAndPlay(playlistStore, playerStore, newSongs.value, index, song, {
+    type: 'search',
+  });
+};
+
 const playGuessSong = (song: Song) => {
   const index = Math.max(
     0,
@@ -321,6 +368,8 @@ onMounted(() => {
   void fetchDailySongs();
   void fetchGuessSongs();
   void fetchRanks();
+  void fetchNewSongs();
+  void fetchNewAlbums();
   startBannerTimer();
 });
 onUnmounted(() => {
@@ -348,12 +397,20 @@ const topIpPlaylistCards = computed(() =>
   topIpPlaylists.value.map((entry) => getPlaylistCardProps(entry)),
 );
 
+/** 当前分类下要显示的歌单卡；「编辑精选」用的是另一批数据。 */
+const visiblePlaylistCards = computed(() =>
+  activeRecommendCategoryId.value === 'editor'
+    ? topIpPlaylistCards.value
+    : recommendedPlaylistCards.value,
+);
+
 const switchRecommendCategory = (
   categoryId: (typeof RECOMMEND_PLAYLIST_CATEGORIES)[number]['id'],
 ) => {
   if (activeRecommendCategoryId.value === categoryId) return;
   activeRecommendCategoryId.value = categoryId;
-  void loadRecommendPlaylists();
+  // 编辑精选的数据单独加载过，不需要再请求推荐歌单
+  if (categoryId !== 'editor') void loadRecommendPlaylists();
 };
 
 const activeStyleGroup = computed(
@@ -623,7 +680,7 @@ const handleRejectAgreement = () => {
         <VirtualGrid
           v-else
           class="playlist-grid"
-          :items="recommendedPlaylistCards"
+          :items="visiblePlaylistCards"
           :loading="recommendState.loading"
           :itemMinWidth="180"
           :itemAspectRatio="1"
@@ -637,6 +694,46 @@ const handleRejectAgreement = () => {
             <PlaylistCard v-bind="item" :coverSize="HOME_PLAYLIST_COVER_SIZE" layout="grid" />
           </template>
         </VirtualGrid>
+      </section>
+
+      <!-- 最新音乐：左边新歌列表，右边新碟上架 -->
+      <section v-if="newSongs.length > 0 || newAlbums.length > 0" class="home-section">
+        <div class="section-header">
+          <div class="section-title">最新音乐</div>
+        </div>
+        <div class="new-music">
+          <div v-if="newSongs.length > 0" class="new-songs">
+            <div class="new-sub-title">新歌速递</div>
+            <div class="new-song-list">
+              <button
+                v-for="song in newSongs"
+                :key="song.id"
+                type="button"
+                class="new-song-row"
+                @click="playNewSong(song)"
+              >
+                <img v-if="song.coverUrl" class="new-song-cover" :src="song.coverUrl" alt="" />
+                <span class="new-song-main">
+                  <span class="new-song-name">{{ song.title }}</span>
+                  <span class="new-song-artist">{{ song.artist || '未知歌手' }}</span>
+                </span>
+              </button>
+            </div>
+          </div>
+          <div v-if="newAlbums.length > 0" class="new-albums">
+            <div class="new-sub-title">新碟上架</div>
+            <div class="new-album-grid">
+              <AlbumCard
+                v-for="album in newAlbums"
+                :key="album.id"
+                :id="album.id"
+                :name="album.name"
+                :coverUrl="album.pic"
+                :artist="album.singerName"
+              />
+            </div>
+          </div>
+        </div>
       </section>
 
       <section class="home-section style-recommend-section">
@@ -736,32 +833,6 @@ const handleRejectAgreement = () => {
             </template>
           </VirtualGrid>
         </div>
-      </section>
-
-      <section class="home-section">
-        <div class="section-header">
-          <div class="section-title">编辑精选</div>
-        </div>
-        <div v-if="!topIpState.loading && topIpState.error" class="section-placeholder">
-          {{ topIpState.error }}
-        </div>
-        <VirtualGrid
-          v-else
-          class="playlist-grid"
-          :items="topIpPlaylistCards"
-          :loading="topIpState.loading"
-          :itemMinWidth="180"
-          :itemAspectRatio="1"
-          :itemChromeHeight="66"
-          :gap="20"
-          :overscan="HOME_GRID_OVERSCAN"
-          :virtualThreshold="HOME_GRID_VIRTUAL_THRESHOLD"
-          keyField="id"
-        >
-          <template #default="{ item }">
-            <PlaylistCard v-bind="item" :coverSize="HOME_PLAYLIST_COVER_SIZE" layout="grid" />
-          </template>
-        </VirtualGrid>
       </section>
     </div>
 
@@ -1050,6 +1121,88 @@ const handleRejectAgreement = () => {
   padding: 14px 0;
   font-size: 11px;
   color: var(--text-secondary);
+}
+
+/* ── 最新音乐：新歌 + 新碟 ── */
+.new-music {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 24px;
+}
+@media (max-width: 1000px) {
+  .new-music {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.new-sub-title {
+  margin-bottom: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.new-song-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px 18px;
+}
+@media (max-width: 700px) {
+  .new-song-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.new-song-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+}
+.new-song-cover {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--content-selected-bg);
+}
+.new-song-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.new-song-name {
+  font-size: 12px;
+  color: var(--text-main);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  transition: color 0.15s ease;
+}
+.new-song-row:hover .new-song-name {
+  color: var(--color-primary);
+}
+.new-song-artist {
+  font-size: 11px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.new-album-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+@media (max-width: 700px) {
+  .new-album-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .section-more {
