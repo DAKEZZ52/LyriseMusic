@@ -1384,36 +1384,41 @@ const handleRejectAgreement = () => {
 .new-list {
   flex: 1;
   display: flex;
-  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
   margin: 0;
-  /* 右侧留白给滚动条，避免贴边 */
-  padding: 0 6px 0 0;
+  padding: 2px 2px 8px;
   list-style: none;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  /* 横向滑动，纵向不滚 */
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
   scrollbar-width: thin;
 }
+.new-list li {
+  flex: 0 0 auto;
+}
 .new-item {
+  position: relative;
   display: flex;
-  align-items: center;
-  gap: 11px;
-  width: 100%;
-  padding: 7px 8px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 7px;
+  width: 96px;
+  padding: 0;
   border: 0;
-  border-radius: 10px;
+  border-radius: 12px;
   background: transparent;
   text-align: left;
   cursor: pointer;
-  min-width: 0;
-  transition:
-    background-color 0.18s ease,
-    transform 0.18s ease;
+  transition: transform 0.18s ease;
 }
 .new-item:hover {
-  background: color-mix(in srgb, var(--content-selected-bg) 70%, transparent);
+  transform: translateY(-2px);
 }
-.new-item.is-active {
-  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+.new-item.is-active .new-item-cover {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
 }
 .new-item.is-active .new-item-name {
   color: var(--color-primary);
@@ -1422,12 +1427,17 @@ const handleRejectAgreement = () => {
 
 /* 选中时的三根跳动条 */
 .new-item-wave {
+  position: absolute;
+  right: 7px;
+  bottom: 6px;
   display: flex;
   align-items: flex-end;
   gap: 2px;
-  height: 14px;
-  margin-left: auto;
-  flex-shrink: 0;
+  height: 13px;
+  padding: 2px 4px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.45);
+  pointer-events: none;
 }
 .new-item-wave i {
   width: 2.5px;
@@ -1462,18 +1472,20 @@ const handleRejectAgreement = () => {
   }
 }
 .new-item-cover {
-  width: 44px;
-  height: 44px;
-  border-radius: 9px;
+  width: 96px;
+  height: 96px;
+  border-radius: 12px;
   object-fit: cover;
   flex-shrink: 0;
   background: var(--content-selected-bg);
+  transition: outline-color 0.18s ease;
 }
 .new-item-main {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  width: 100%;
 }
 .new-item-name {
   font-size: 13px;
