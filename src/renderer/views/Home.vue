@@ -1411,6 +1411,12 @@ const handleRejectAgreement = () => {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
 }
+/* 主区变窄（两栏生效）时新碟降成两列，三列会挤成邮票 */
+@media (max-width: 1240px) {
+  .new-album-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 @media (max-width: 700px) {
   .new-album-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1576,8 +1582,8 @@ const handleRejectAgreement = () => {
 /* ── 两栏骨架：主内容 + 右侧固定栏 ── */
 .home-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 28px;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 24px;
   align-items: start;
 }
 .home-main {
@@ -1596,7 +1602,7 @@ const handleRejectAgreement = () => {
   grid-template-columns: minmax(0, 1fr);
   gap: 22px;
 }
-@media (max-width: 1240px) {
+@media (max-width: 960px) {
   .home-layout {
     grid-template-columns: minmax(0, 1fr);
   }
