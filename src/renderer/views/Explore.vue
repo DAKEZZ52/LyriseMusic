@@ -2,7 +2,7 @@
 import PageStickyHeader from '@/components/ui/PageStickyHeader.vue';
 defineOptions({ name: 'explore' });
 import { computed, onMounted, reactive, ref, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { extractAlbumGroups, extractList } from '@/utils/extractors';
 import { usePlaylistStore } from '@/stores/playlist';
 import { usePlayerStore } from '@/stores/player';
@@ -78,13 +78,9 @@ interface ExploreArtistCardProps {
 const playlistStore = usePlaylistStore();
 const playerStore = usePlayerStore();
 const route = useRoute();
-const router = useRouter();
 const settingStore = useSettingStore();
 const toastStore = useToastStore();
 
-const openRecommend = () => router.push({ name: 'recommend-songs' });
-const openRanking = () => router.push({ name: 'ranking' });
-const todayLabel = new Date().getDate().toString();
 const recommendedPlaylists = ref<PlaylistMeta[]>([]);
 const newSongs = ref<Song[]>([]);
 const loadingPlaylists = ref(true);
@@ -631,24 +627,6 @@ const filteredArtistCards = computed(() => {
         </div>
       </PageStickyHeader>
 
-      <!-- 每日推荐 + 排行榜 快捷入口 -->
-      <div class="explore-feature-row">
-        <Button variant="unstyled" size="none" class="explore-feature-card" @click="openRecommend">
-          <div class="explore-feature-icon explore-feature-primary">{{ todayLabel }}</div>
-          <div class="explore-feature-meta">
-            <div class="explore-feature-title">每日推荐</div>
-            <div class="explore-feature-sub">为你量身定制</div>
-          </div>
-        </Button>
-        <Button variant="unstyled" size="none" class="explore-feature-card" @click="openRanking">
-          <div class="explore-feature-icon explore-feature-secondary">TOP</div>
-          <div class="explore-feature-meta">
-            <div class="explore-feature-title">排行榜</div>
-            <div class="explore-feature-sub">实时热门趋势</div>
-          </div>
-        </Button>
-      </div>
-
       <div v-if="activeTabIndex === 0" class="mt-0">
         <div class="explore-toolbar">
           <CustomSelector :label="playlistCategoryLabel" @click="showPlaylistPicker = true" />
@@ -994,64 +972,6 @@ const filteredArtistCards = computed(() => {
 @reference "@/style.css";
 
 /* 快捷入口卡片 */
-.explore-feature-row {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-  margin: 16px 0 24px;
-}
-
-.explore-feature-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  height: 60px;
-  padding: 0 16px;
-  border-radius: 12px;
-  background: var(--content-panel-bg);
-  border: 1px solid var(--content-panel-border);
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-
-.explore-feature-card:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-card);
-}
-
-.explore-feature-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-weight: 700;
-  font-size: 16px;
-  flex-shrink: 0;
-}
-
-.explore-feature-primary {
-  background: linear-gradient(135deg, #ff6b6b, #ee5a24);
-}
-
-.explore-feature-secondary {
-  background: linear-gradient(135deg, #4facfe, #0071e3);
-}
-
-.explore-feature-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-main);
-}
-
-.explore-feature-sub {
-  font-size: 11px;
-  color: var(--text-secondary);
-  margin-top: 2px;
-}
-
 /* PageStickyHeader teleports this element without the parent scope attribute. */
 :global(.explore-view-container .explore-header) {
   position: sticky;
