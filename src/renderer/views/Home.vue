@@ -14,7 +14,7 @@ import {
   getRankSongs,
   getPlaylistTags,
 } from '@/api/playlist';
-import { getEverydayStyleRecommend, getEverydayRecommend, getNewSongs } from '@/api/music';
+import { getEverydayStyleRecommend, getEverydayRecommend } from '@/api/music';
 import PlaylistCard from '@/components/music/PlaylistCard.vue';
 import SongCard from '@/components/music/SongCard.vue';
 import VirtualGrid from '@/components/ui/VirtualGrid.vue';
@@ -295,20 +295,8 @@ const openRank = (rank: RankMeta) => {
 };
 
 /** 最新音乐：新歌列表 + 新碟，媒体库缺少「新」这个维度。 */
-const newSongs = ref<Song[]>([]);
 
-const fetchNewSongs = async () => {
-  try {
-    const res = await getNewSongs();
-    newSongs.value = extractList(res)
-      .map((item) => mapTopSong(item))
-      .slice(0, 30);
-  } catch {
-    newSongs.value = [];
-  }
-};
-
-/** 最新音乐横滑：左右按钮按容器宽度翻页。 */
+/** 封面墙横滑：左右按钮按容器宽度翻页。 */
 const newListRef = ref<HTMLElement | null>(null);
 const scrollNew = (direction: number) => {
   const el = newListRef.value;
@@ -316,7 +304,7 @@ const scrollNew = (direction: number) => {
   el.scrollBy({ left: direction * el.clientWidth * 0.8, behavior: 'smooth' });
 };
 
-/** 缓慢自动滚动：每 3.6 秒往前挪一张卡，到头回到开头；悬停或手动操作时暂停。 */
+/** 封面墙缓慢自动滚动：每 3.6 秒往前挪一张，到头回到开头；悬停时暂停。 */
 const newAutoPaused = ref(false);
 let newAutoTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -345,22 +333,23 @@ const openFeature = (name: 'score' | 'chatroom-list' | 'separator') => {
 const themeStore = useThemeStore();
 const featureTint = computed(() => themeStore.coverColor || '');
 
-const playNewSong = (song: Song) => {
-  const index = Math.max(
-    0,
-    newSongs.value.findIndex((item) => String(item.id) === String(song.id)),
-  );
-  void replaceQueueAndPlay(playlistStore, playerStore, newSongs.value, index, song, {
-    type: 'search',
-  });
-};
-
 /** 每日推荐大卡上的「播放全部」。 */
 const todayLabel = new Date().getDate().toString();
 const playAllDaily = () => {
   const first = dailySongs.value[0];
   if (!first) return;
   void replaceQueueAndPlay(playlistStore, playerStore, dailySongs.value, 0, first, {
+    type: 'daily-recommend',
+  });
+};
+
+/** 点封面墙里的一首：从该首开始播每日推荐队列。 */
+const playDailySong = (song: Song) => {
+  const index = Math.max(
+    0,
+    dailySongs.value.findIndex((item) => String(item.id) === String(song.id)),
+  );
+  void replaceQueueAndPlay(playlistStore, playerStore, dailySongs.value, index, song, {
     type: 'daily-recommend',
   });
 };
@@ -452,7 +441,6 @@ const startBannerTimer = () => {
 onMounted(() => {
   void fetchDailySongs();
   void fetchRanks();
-  void fetchNewSongs();
   void fetchBannerPlaylists();
   startBannerTimer();
   startNewAutoScroll();
@@ -676,8 +664,8 @@ const handleRejectAgreement = () => {
           </template>
         </div>
 
-        <!-- 右半边：每日推荐为主，最新音乐为辅 -->
-        <section v-if="dailySongs.length > 0 || newSongs.length > 0" class="new-panel">
+        <!-- 右半边：每日推荐 + 封面墙 + 功能入口 -->
+        <section v-if="dailySongs.length > 0" class="new-panel">
           <!-- 每日推荐放最上，做大 -->
           <div v-if="dailySongs.length > 0" class="daily-inline">
             <div class="daily-badge">
@@ -694,23 +682,20 @@ const handleRejectAgreement = () => {
             </button>
           </div>
 
-          <!-- 最新音乐缩成辅栏 -->
-          <template v-if="newSongs.length > 0">
-            <div class="section-header new-panel-head">
-              <div class="section-title">最新音乐</div>
-            </div>
+          <!-- 每日推荐的封面墙：横向缓慢自动滚动 -->
+          <template v-if="dailySongs.length > 0">
             <div
               class="new-scroll"
               @mouseenter="newAutoPaused = true"
               @mouseleave="newAutoPaused = false"
             >
               <ul ref="newListRef" class="new-list">
-                <li v-for="song in newSongs" :key="song.id">
+                <li v-for="song in dailySongs" :key="song.id">
                   <button
                     type="button"
                     class="new-item"
                     :class="{ 'is-active': activeSongId === String(song.id) }"
-                    @click="playNewSong(song)"
+                    @click="playDailySong(song)"
                   >
                     <img v-if="song.coverUrl" class="new-item-cover" :src="song.coverUrl" alt="" />
                     <span class="new-item-main">
@@ -771,7 +756,7 @@ const handleRejectAgreement = () => {
         </section>
       </div>
 
-      <!-- 每日推荐已经并进右侧「最新音乐」面板 -->
+      <!-- 每日推荐（含封面墙与功能入口）在右侧面板里 -->
 
       <section class="home-section style-recommend-section">
         <div class="section-header">
@@ -1468,9 +1453,6 @@ const handleRejectAgreement = () => {
 .hero-split .home-banner {
   margin-bottom: 0;
   height: 100%;
-}
-.new-panel-head {
-  margin-bottom: 10px;
 }
 .new-panel {
   display: flex;
