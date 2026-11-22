@@ -15,7 +15,7 @@ import { mapPlaylistMeta, mapTopSong } from '@/utils/mappers';
 import { extractList } from '@/utils/extractors';
 import type { PlaylistMeta } from '@/models/playlist';
 import type { Song } from '@/models/song';
-import { iconCompass, iconPlay, iconPulse, iconSlidersHorizontal } from '@/icons';
+import { iconPlay, iconSlidersHorizontal } from '@/icons';
 import Button from '@/components/ui/Button.vue';
 import UserAgreementDialog from '@/components/app/UserAgreementDialog.vue';
 import PageScrollContainer from '@/components/ui/PageScrollContainer.vue';
@@ -224,9 +224,6 @@ const openPersonalFm = () => {
 };
 const openRankingPage = () => {
   router.push({ name: 'ranking' });
-};
-const openExplore = () => {
-  router.push({ name: 'explore' });
 };
 
 /** 每日推荐歌曲：首页几处都要用，单独存一份。 */
@@ -503,27 +500,15 @@ const handleRejectAgreement = () => {
         </template>
       </div>
 
-      <!-- 快捷入口：参考 QQ音乐的四宫格 -->
+      <!-- 快捷入口：只放侧边栏没有的。私人 FM 和歌单广场侧边栏已有，这里重复 -->
       <div class="quick-row">
         <button type="button" class="quick-item" @click="openRecommend">
           <span class="quick-icon quick-icon-orange">{{ todayLabel }}</span>
           <span class="quick-label">每日推荐</span>
         </button>
-        <button type="button" class="quick-item" @click="openPersonalFm">
-          <span class="quick-icon quick-icon-purple">
-            <Icon :icon="iconPulse" width="18" height="18" />
-          </span>
-          <span class="quick-label">私人 FM</span>
-        </button>
         <button type="button" class="quick-item" @click="openRankingPage">
           <span class="quick-icon quick-icon-blue">TOP</span>
           <span class="quick-label">排行榜</span>
-        </button>
-        <button type="button" class="quick-item" @click="openExplore">
-          <span class="quick-icon quick-icon-green">
-            <Icon :icon="iconCompass" width="18" height="18" />
-          </span>
-          <span class="quick-label">歌单广场</span>
         </button>
       </div>
 
@@ -882,14 +867,9 @@ const handleRejectAgreement = () => {
 /* ── 快捷入口四宫格 ── */
 .quick-row {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 30px;
-}
-@media (max-width: 700px) {
-  .quick-row {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 .quick-item {
   display: flex;
