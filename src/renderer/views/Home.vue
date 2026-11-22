@@ -1565,11 +1565,10 @@ const handleRejectAgreement = () => {
 .style-tag-row {
   margin-top: 12px;
   display: flex;
+  /* 标签全部换行展示：原来横向滚动但隐藏了滚动条，末几个看着像被裁掉 */
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 2px;
-  scrollbar-width: none;
 }
 
 .style-tag-row::-webkit-scrollbar {
