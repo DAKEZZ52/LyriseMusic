@@ -37,6 +37,8 @@ function setup() {
   const deps = {
     state,
     PERSONAL_FM_QUEUE_ID: 'queue:personal-fm',
+    // togglePlay 里暂停/恢复都带淡入淡出时长，这个常量在模块顶层，得一起注入
+    TOGGLE_FADE_MS: 200,
     isCurrentNativePlaybackContext: () => true,
     engine: {
       source: 'existing-source',

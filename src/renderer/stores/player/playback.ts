@@ -57,6 +57,13 @@ import {
 const GAPLESS_PREFETCH_WINDOW_SECS = 30;
 const GAPLESS_SEEK_REGISTRATION_WINDOW_SECS = 2;
 
+/**
+ * 暂停/恢复时的淡入淡出时长。
+ * 跟「开始播放时淡入」那个设置（500-3000ms）分开：那个给切歌用，
+ * 暂停要是也淡一秒，点一下要等一秒才停，手感很差。
+ */
+const TOGGLE_FADE_MS = 200;
+
 type GaplessPreparedSource = {
   key: string;
   currentTrackId: string;
@@ -1511,7 +1518,9 @@ export const createPlaybackManager = (
       setPlaybackIntentPlayback(state, false);
       settingStore.syncPreventSleep(false);
       engine.updateMediaPlaybackState(buildMediaState(state));
-      engine.pause().catch((err) => logger.error('PlayerPlayback', 'Pause failed', err));
+      engine
+        .pause({ fadeOut: true, fadeDurationMs: TOGGLE_FADE_MS })
+        .catch((err) => logger.error('PlayerPlayback', 'Pause failed', err));
       setEnginePlaybackStatus(state, 'paused');
       return;
     }
@@ -1538,7 +1547,11 @@ export const createPlaybackManager = (
 
     try {
       const timeoutMs = (settingStore.playResumeTimeout ?? 5) * 1000;
-      await engine.play({ timeoutMs: timeoutMs > 0 ? timeoutMs : undefined });
+      await engine.play({
+        fadeIn: true,
+        fadeDurationMs: TOGGLE_FADE_MS,
+        timeoutMs: timeoutMs > 0 ? timeoutMs : undefined,
+      });
       if (!isCurrentResume()) return;
       setEnginePlaybackStatus(state, 'playing');
     } catch (error) {

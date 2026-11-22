@@ -3,6 +3,7 @@ import startupSoundUrl from '/zhenzhu/startup.wav?url';
 import startupSoundAsuUrl from '/zhenzhu/asu.mp3?url';
 import TooltipScope from '@/components/ui/TooltipScope.vue';
 import SettingsDialog from '@/components/app/SettingsDialog.vue';
+import ShortcutCheatSheet from '@/components/app/ShortcutCheatSheet.vue';
 import {
   computed,
   defineAsyncComponent,
@@ -777,6 +778,9 @@ watch(
       </div>
     </div>
   </Teleport>
+
+  <!-- 快捷键速查：按 ? 打开，全局可用 -->
+  <ShortcutCheatSheet />
 </template>
 
 <style>
