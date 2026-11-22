@@ -16,7 +16,7 @@ import { extractList } from '@/utils/extractors';
 import type { PlaylistMeta } from '@/models/playlist';
 import type { RankMeta } from '@/models/rank';
 import type { Song } from '@/models/song';
-import { iconPlay, iconSlidersHorizontal } from '@/icons';
+import { iconCalendar, iconPlay, iconSlidersHorizontal, iconSparkles, iconTrophy } from '@/icons';
 import Button from '@/components/ui/Button.vue';
 import UserAgreementDialog from '@/components/app/UserAgreementDialog.vue';
 import PageScrollContainer from '@/components/ui/PageScrollContainer.vue';
@@ -533,15 +533,20 @@ const handleRejectAgreement = () => {
         <!-- 每日推荐 -->
         <section class="entry-card">
           <header class="entry-head">
-            <span class="entry-dot entry-dot-orange" />
+            <span class="entry-icon entry-icon-orange"
+              ><Icon :icon="iconCalendar" width="13" height="13"
+            /></span>
             <span class="entry-title">每日推荐</span>
             <button type="button" class="entry-more" @click="openRecommend">更多</button>
           </header>
           <ul v-if="dailySongs.length > 0" class="entry-list">
             <li v-for="song in dailySongs.slice(0, 5)" :key="song.id">
               <button type="button" class="entry-row" @click="playDailySong(song)">
-                <span class="entry-row-title">{{ song.title }}</span>
-                <span class="entry-row-sub">{{ song.artist || '未知歌手' }}</span>
+                <img v-if="song.coverUrl" class="entry-cover" :src="song.coverUrl" alt="" />
+                <span class="entry-row-main">
+                  <span class="entry-row-title">{{ song.title }}</span>
+                  <span class="entry-row-sub">{{ song.artist || '未知歌手' }}</span>
+                </span>
               </button>
             </li>
           </ul>
@@ -551,15 +556,20 @@ const handleRejectAgreement = () => {
         <!-- 排行榜 -->
         <section class="entry-card">
           <header class="entry-head">
-            <span class="entry-dot entry-dot-blue" />
+            <span class="entry-icon entry-icon-blue"
+              ><Icon :icon="iconTrophy" width="13" height="13"
+            /></span>
             <span class="entry-title">排行榜</span>
             <button type="button" class="entry-more" @click="openRankingPage">更多</button>
           </header>
           <ul v-if="ranks.length > 0" class="entry-list">
             <li v-for="rank in ranks" :key="rank.id">
               <button type="button" class="entry-row" @click="openRank(rank)">
-                <span class="entry-row-title">{{ rank.name }}</span>
-                <span class="entry-row-sub">{{ rank.updateFrequency || '实时更新' }}</span>
+                <img v-if="rank.pic" class="entry-cover" :src="rank.pic" alt="" />
+                <span class="entry-row-main">
+                  <span class="entry-row-title">{{ rank.name }}</span>
+                  <span class="entry-row-sub">{{ rank.updateFrequency || '实时更新' }}</span>
+                </span>
               </button>
             </li>
           </ul>
@@ -569,15 +579,20 @@ const handleRejectAgreement = () => {
         <!-- 猜你喜欢 -->
         <section class="entry-card">
           <header class="entry-head">
-            <span class="entry-dot entry-dot-purple" />
+            <span class="entry-icon entry-icon-purple"
+              ><Icon :icon="iconSparkles" width="13" height="13"
+            /></span>
             <span class="entry-title">猜你喜欢</span>
             <button type="button" class="entry-more" @click="openPersonalFm">更多</button>
           </header>
           <ul v-if="guessSongs.length > 0" class="entry-list">
             <li v-for="song in guessSongs.slice(0, 5)" :key="song.id">
               <button type="button" class="entry-row" @click="playGuessSong(song)">
-                <span class="entry-row-title">{{ song.title }}</span>
-                <span class="entry-row-sub">{{ song.artist || '未知歌手' }}</span>
+                <img v-if="song.coverUrl" class="entry-cover" :src="song.coverUrl" alt="" />
+                <span class="entry-row-main">
+                  <span class="entry-row-title">{{ song.title }}</span>
+                  <span class="entry-row-sub">{{ song.artist || '未知歌手' }}</span>
+                </span>
               </button>
             </li>
           </ul>
@@ -937,19 +952,23 @@ const handleRejectAgreement = () => {
   gap: 8px;
   margin-bottom: 6px;
 }
-.entry-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+.entry-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
   flex-shrink: 0;
 }
-.entry-dot-orange {
+.entry-icon-orange {
   background: linear-gradient(135deg, #ff8a3d, #f4511e);
 }
-.entry-dot-blue {
+.entry-icon-blue {
   background: linear-gradient(135deg, #4facfe, #0071e3);
 }
-.entry-dot-purple {
+.entry-icon-purple {
   background: linear-gradient(135deg, #a855f7, #6d28d9);
 }
 .entry-title {
@@ -980,8 +999,8 @@ const handleRejectAgreement = () => {
 }
 .entry-row {
   display: flex;
-  flex-direction: column;
-  gap: 1px;
+  align-items: center;
+  gap: 10px;
   width: 100%;
   padding: 6px 0;
   border: 0;
@@ -989,6 +1008,21 @@ const handleRejectAgreement = () => {
   text-align: left;
   cursor: pointer;
   min-width: 0;
+}
+.entry-cover {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--content-selected-bg);
+}
+.entry-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
 }
 .entry-row-title {
   font-size: 12px;
