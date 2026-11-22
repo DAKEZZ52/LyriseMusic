@@ -819,16 +819,17 @@ const handleRejectAgreement = () => {
   inset: 0;
   display: flex;
   align-items: center;
-  gap: 22px;
-  padding: 0 36px;
+  gap: 26px;
+  padding: 0 32px;
 }
 .banner-cover {
-  height: 64%;
+  /* 横幅高度约 260px，82% 后封面接近 215px，比原来 64% 更压得住画面 */
+  height: 82%;
   aspect-ratio: 1;
   flex-shrink: 0;
   object-fit: cover;
-  border-radius: 12px;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.38);
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.42);
 }
 .banner-info {
   min-width: 0;
