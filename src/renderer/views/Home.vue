@@ -7,7 +7,13 @@ import { useRouter } from 'vue-router';
 import { useUserStore } from '@/stores/user';
 import { useSettingStore } from '@/stores/setting';
 import { useThemeStore } from '@/stores/theme';
-import { getPlaylistByCategory, getTopIP, getRankTop, getRankSongs } from '@/api/playlist';
+import {
+  getPlaylistByCategory,
+  getTopIP,
+  getRankTop,
+  getRankSongs,
+  getPlaylistTags,
+} from '@/api/playlist';
 import { getEverydayStyleRecommend, getEverydayRecommend, getNewSongs } from '@/api/music';
 import PlaylistCard from '@/components/music/PlaylistCard.vue';
 import SongCard from '@/components/music/SongCard.vue';
@@ -370,12 +376,57 @@ const playRankSong = (song: Song, list: Song[]) => {
 };
 
 /**
- * 顶部轮播：拿推荐歌单的前几个当大图，和 QQ音乐/网易云的首页 banner 一致。
- * 5 秒自动切换，鼠标移上去暂停，点圆点可手动跳。
+ * 顶部轮播：从「歌单分类」里随机挑几个子分类（场景/主题/语种/风格/心情/年代），
+ * 每个分类再各取一个歌单，打散后取五个 —— 每次进首页看到的不一样。
  */
 const bannerIndex = ref(0);
 const bannerPaused = ref(false);
-const bannerItems = computed(() => recommendedPlaylists.value.slice(0, 5));
+const bannerItems = ref<PlaylistMeta[]>([]);
+
+const shuffle = <T,>(input: T[]): T[] => {
+  const list = input.slice();
+  for (let i = list.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [list[i], list[j]] = [list[j], list[i]];
+  }
+  return list;
+};
+
+const fetchBannerPlaylists = async () => {
+  try {
+    const tagRes = await getPlaylistTags();
+    const groups = extractList(tagRes) as Record<string, unknown>[];
+    const leaves: string[] = [];
+    groups.forEach((group) => {
+      const sons = (group.son as Record<string, unknown>[] | undefined) ?? [];
+      sons.forEach((son) => {
+        const id = String(son.tag_id ?? son.id ?? '');
+        if (id) leaves.push(id);
+      });
+    });
+    if (leaves.length === 0) {
+      bannerItems.value = [];
+      return;
+    }
+
+    // 随机挑 5 个子分类，每个拉一页歌单
+    const picked = shuffle(leaves).slice(0, 5);
+    const pages = await Promise.all(
+      picked.map(async (categoryId) => {
+        try {
+          const res = await getPlaylistByCategory(categoryId, 0, 1);
+          return extractList(res).map((item) => mapPlaylistMeta(item));
+        } catch {
+          return [] as PlaylistMeta[];
+        }
+      }),
+    );
+
+    bannerItems.value = shuffle(pages.flat().filter((entry) => entry.id)).slice(0, 5);
+  } catch {
+    bannerItems.value = [];
+  }
+};
 
 const setBanner = (index: number) => {
   if (bannerItems.value.length === 0) return;
@@ -402,6 +453,7 @@ onMounted(() => {
   void fetchDailySongs();
   void fetchRanks();
   void fetchNewSongs();
+  void fetchBannerPlaylists();
   startBannerTimer();
   startNewAutoScroll();
 });
@@ -698,16 +750,22 @@ const handleRejectAgreement = () => {
             :style="featureTint ? { '--feature-tint': featureTint } : undefined"
           >
             <button type="button" class="feature-item" @click="openFeature('score')">
-              <Icon :icon="iconMusic" width="16" height="16" />
-              <span>简谱</span>
+              <span class="feature-icon">
+                <Icon :icon="iconMusic" width="16" height="16" />
+              </span>
+              <span class="feature-label">简谱</span>
             </button>
             <button type="button" class="feature-item" @click="openFeature('chatroom-list')">
-              <Icon :icon="iconMicrophone" width="16" height="16" />
-              <span>语聊房</span>
+              <span class="feature-icon">
+                <Icon :icon="iconMicrophone" width="16" height="16" />
+              </span>
+              <span class="feature-label">语聊房</span>
             </button>
             <button type="button" class="feature-item" @click="openFeature('separator')">
-              <Icon :icon="iconScissors" width="16" height="16" />
-              <span>人声分离</span>
+              <span class="feature-icon">
+                <Icon :icon="iconScissors" width="16" height="16" />
+              </span>
+              <span class="feature-label">人声分离</span>
             </button>
           </div>
         </section>
@@ -1598,25 +1656,43 @@ const handleRejectAgreement = () => {
   --tint: var(--feature-tint, var(--color-primary));
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 7px;
-  padding: 14px 0;
-  border: 1px solid color-mix(in srgb, var(--tint) 34%, transparent);
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--content-panel-border);
   border-radius: 12px;
-  background: color-mix(in srgb, var(--tint) 9%, transparent);
-  font-size: 13px;
-  font-weight: 600;
-  color: color-mix(in srgb, var(--tint) 82%, var(--text-main));
+  background: var(--content-panel-bg);
   cursor: pointer;
   transition:
     background-color 0.2s ease,
     border-color 0.2s ease,
     transform 0.2s ease;
+  min-width: 0;
 }
 .feature-item:hover {
-  background: color-mix(in srgb, var(--tint) 18%, transparent);
-  border-color: color-mix(in srgb, var(--tint) 52%, transparent);
+  border-color: color-mix(in srgb, var(--tint) 45%, var(--content-panel-border));
+  background: color-mix(in srgb, var(--tint) 8%, var(--content-panel-bg));
   transform: translateY(-1px);
+}
+/* 颜色只落在图标方块上：小面积高饱和，比整块淡色更容易看见 */
+.feature-icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--tint) 72%, #fff), var(--tint));
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--tint) 30%, transparent);
+}
+.feature-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 @media (prefers-reduced-motion: reduce) {
   .feature-item:hover {
