@@ -576,34 +576,9 @@ const handleRejectAgreement = () => {
           </template>
         </div>
 
-        <!-- 最新音乐：右半边，紧凑列表和轮播同高 -->
-        <section v-if="newSongs.length > 0" class="new-panel">
-          <div class="section-header">
-            <div class="section-title">最新音乐</div>
-          </div>
-          <ul class="new-list">
-            <li v-for="song in newSongs" :key="song.id">
-              <button
-                type="button"
-                class="new-item"
-                :class="{ 'is-active': activeSongId === String(song.id) }"
-                @click="playNewSong(song)"
-              >
-                <img v-if="song.coverUrl" class="new-item-cover" :src="song.coverUrl" alt="" />
-                <span class="new-item-main">
-                  <span class="new-item-name">{{ song.title }}</span>
-                  <span class="new-item-artist">{{ song.artist || '未知歌手' }}</span>
-                </span>
-                <span v-if="activeSongId === String(song.id)" class="new-item-wave">
-                  <i />
-                  <i />
-                  <i />
-                </span>
-              </button>
-            </li>
-          </ul>
-
-          <!-- 每日推荐：并进同一张面板，只留文字和播放按钮，不放封面墙 -->
+        <!-- 右半边：每日推荐为主，最新音乐为辅 -->
+        <section v-if="dailySongs.length > 0 || newSongs.length > 0" class="new-panel">
+          <!-- 每日推荐放最上，做大 -->
           <div v-if="dailySongs.length > 0" class="daily-inline">
             <div class="daily-badge">
               <span class="daily-day">{{ todayLabel }}</span>
@@ -614,10 +589,38 @@ const handleRejectAgreement = () => {
               <div class="daily-sub">根据你的口味，今天为你准备了 {{ dailySongs.length }} 首</div>
             </div>
             <button type="button" class="daily-play" @click="playAllDaily">
-              <Icon :icon="iconPlay" width="13" height="13" />
+              <Icon :icon="iconPlay" width="15" height="15" />
               <span>播放全部</span>
             </button>
           </div>
+
+          <!-- 最新音乐缩成辅栏 -->
+          <template v-if="newSongs.length > 0">
+            <div class="section-header new-panel-head">
+              <div class="section-title">最新音乐</div>
+            </div>
+            <ul class="new-list">
+              <li v-for="song in newSongs" :key="song.id">
+                <button
+                  type="button"
+                  class="new-item"
+                  :class="{ 'is-active': activeSongId === String(song.id) }"
+                  @click="playNewSong(song)"
+                >
+                  <img v-if="song.coverUrl" class="new-item-cover" :src="song.coverUrl" alt="" />
+                  <span class="new-item-main">
+                    <span class="new-item-name">{{ song.title }}</span>
+                    <span class="new-item-artist">{{ song.artist || '未知歌手' }}</span>
+                  </span>
+                  <span v-if="activeSongId === String(song.id)" class="new-item-wave">
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+                </button>
+              </li>
+            </ul>
+          </template>
         </section>
       </div>
 
@@ -958,20 +961,20 @@ const handleRejectAgreement = () => {
 
 /* ── 快捷入口四宫格 ── */
 /* ── 每日推荐大卡 ── */
-/* ── 面板内的每日推荐行 ── */
+/* ── 每日推荐：面板主块 ── */
 .daily-inline {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--content-panel-border);
+  gap: 14px;
+  padding-bottom: 16px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--content-panel-border);
 }
 .daily-badge {
   flex-shrink: 0;
-  width: 40px;
-  height: 44px;
-  border-radius: 10px;
+  width: 56px;
+  height: 60px;
+  border-radius: 14px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -984,35 +987,36 @@ const handleRejectAgreement = () => {
   min-width: 0;
 }
 .daily-day {
-  font-size: 18px;
+  font-size: 24px;
   font-weight: 700;
   line-height: 1;
 }
 .daily-month {
-  margin-top: 1px;
-  font-size: 9px;
+  margin-top: 2px;
+  font-size: 10px;
   opacity: 0.9;
 }
 .daily-title {
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--text-main);
 }
 .daily-sub {
-  margin-top: 4px;
+  margin-top: 5px;
   font-size: 12px;
+  line-height: 1.45;
   color: var(--text-secondary);
 }
 .daily-play {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  margin-top: 10px;
-  padding: 6px 14px;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 8px 16px;
   border: 0;
-  border-radius: 16px;
-  font-size: 12px;
-  font-weight: 600;
+  border-radius: 18px;
+  font-size: 13px;
+  font-weight: 700;
   color: var(--color-on-primary, #fff);
   background: var(--color-primary);
   cursor: pointer;
@@ -1318,6 +1322,9 @@ const handleRejectAgreement = () => {
   margin-bottom: 0;
   height: 100%;
 }
+.new-panel-head {
+  margin-bottom: 10px;
+}
 .new-panel {
   display: flex;
   flex-direction: column;
@@ -1328,7 +1335,8 @@ const handleRejectAgreement = () => {
   background: var(--content-panel-bg);
 }
 .new-panel .section-title {
-  font-size: 14px;
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 .new-list {
   flex: 1;
@@ -1352,8 +1360,8 @@ const handleRejectAgreement = () => {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 8px;
-  width: 160px;
+  gap: 6px;
+  width: 110px;
   padding: 0;
   border: 0;
   border-radius: 12px;
@@ -1421,9 +1429,9 @@ const handleRejectAgreement = () => {
   }
 }
 .new-item-cover {
-  width: 160px;
-  height: 160px;
-  border-radius: 14px;
+  width: 110px;
+  height: 110px;
+  border-radius: 12px;
   object-fit: cover;
   flex-shrink: 0;
   background: var(--content-selected-bg);
@@ -1437,7 +1445,7 @@ const handleRejectAgreement = () => {
   width: 100%;
 }
 .new-item-name {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-main);
   overflow: hidden;
   white-space: nowrap;
@@ -1448,7 +1456,7 @@ const handleRejectAgreement = () => {
   color: var(--color-primary);
 }
 .new-item-artist {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-secondary);
   overflow: hidden;
   white-space: nowrap;
