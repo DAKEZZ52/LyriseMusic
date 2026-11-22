@@ -442,6 +442,45 @@ const handleRejectAgreement = () => {
         </div>
       </div>
 
+      <section class="home-section">
+        <div class="section-header">
+          <div class="section-title">推荐歌单</div>
+          <div class="playlist-source-tabs">
+            <Button
+              v-for="category in RECOMMEND_PLAYLIST_CATEGORIES"
+              :key="category.id"
+              variant="unstyled"
+              size="none"
+              class="playlist-source-btn"
+              :class="{ active: activeRecommendCategoryId === category.id }"
+              @click="switchRecommendCategory(category.id)"
+            >
+              {{ category.label }}
+            </Button>
+          </div>
+        </div>
+        <div v-if="!recommendState.loading && recommendState.error" class="section-placeholder">
+          {{ recommendState.error }}
+        </div>
+        <VirtualGrid
+          v-else
+          class="playlist-grid"
+          :items="recommendedPlaylistCards"
+          :loading="recommendState.loading"
+          :itemMinWidth="180"
+          :itemAspectRatio="1"
+          :itemChromeHeight="66"
+          :gap="20"
+          :overscan="HOME_GRID_OVERSCAN"
+          :virtualThreshold="HOME_GRID_VIRTUAL_THRESHOLD"
+          keyField="id"
+        >
+          <template #default="{ item }">
+            <PlaylistCard v-bind="item" :coverSize="HOME_PLAYLIST_COVER_SIZE" layout="grid" />
+          </template>
+        </VirtualGrid>
+      </section>
+
       <section class="home-section style-recommend-section">
         <div class="section-header">
           <div>
@@ -539,45 +578,6 @@ const handleRejectAgreement = () => {
             </template>
           </VirtualGrid>
         </div>
-      </section>
-
-      <section class="home-section">
-        <div class="section-header">
-          <div class="section-title">推荐歌单</div>
-          <div class="playlist-source-tabs">
-            <Button
-              v-for="category in RECOMMEND_PLAYLIST_CATEGORIES"
-              :key="category.id"
-              variant="unstyled"
-              size="none"
-              class="playlist-source-btn"
-              :class="{ active: activeRecommendCategoryId === category.id }"
-              @click="switchRecommendCategory(category.id)"
-            >
-              {{ category.label }}
-            </Button>
-          </div>
-        </div>
-        <div v-if="!recommendState.loading && recommendState.error" class="section-placeholder">
-          {{ recommendState.error }}
-        </div>
-        <VirtualGrid
-          v-else
-          class="playlist-grid"
-          :items="recommendedPlaylistCards"
-          :loading="recommendState.loading"
-          :itemMinWidth="180"
-          :itemAspectRatio="1"
-          :itemChromeHeight="66"
-          :gap="20"
-          :overscan="HOME_GRID_OVERSCAN"
-          :virtualThreshold="HOME_GRID_VIRTUAL_THRESHOLD"
-          keyField="id"
-        >
-          <template #default="{ item }">
-            <PlaylistCard v-bind="item" :coverSize="HOME_PLAYLIST_COVER_SIZE" layout="grid" />
-          </template>
-        </VirtualGrid>
       </section>
 
       <section class="home-section">
