@@ -902,28 +902,35 @@ const handleRejectAgreement = () => {
   );
 }
 .banner-content {
+  /* 底部通栏：横跨整个轮播宽度，压在渐变遮罩上 */
   position: absolute;
-  inset: 0;
-  display: flex;
-  /* 文字统一压在底部，避开右下角的圆点指示器 */
-  align-items: flex-end;
-  /* 封面贴左边缘（羽化后不能再留内边距，否则左边缘会切出一条竖线） */
-  gap: 18px;
-  padding: 0 32px 34px 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 56px 24px 18px;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.72) 0%,
+    rgba(0, 0, 0, 0.3) 55%,
+    transparent 100%
+  );
 }
 .banner-cover {
-  /* 横幅高度约 260px，82% 后封面接近 215px，比原来 64% 更压得住画面 */
+  /* 封面独立贴左侧铺满高度，文字条叠在它上方 */
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
   height: 100%;
   aspect-ratio: 1;
-  flex-shrink: 0;
   object-fit: cover;
   /* 右边缘羽化到透明，和背后的模糊图连成一片，去掉方框和投影 */
   mask-image: linear-gradient(to right, #000 58%, transparent 100%);
   -webkit-mask-image: linear-gradient(to right, #000 58%, transparent 100%);
 }
 .banner-info {
-  min-width: 0;
-  flex: 1;
+  /* 右侧留出圆点指示器的位置，避免文字压到它 */
+  padding-right: 96px;
   text-align: left;
 }
 .banner-title {
