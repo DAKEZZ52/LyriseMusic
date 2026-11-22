@@ -916,17 +916,13 @@ const handleRejectAgreement = () => {
   );
 }
 .banner-cover {
-  /* 封面独立贴左侧铺满高度，文字条叠在它上方 */
+  /* 封面铺满整个轮播；方形图会被裁掉左右，但画面是满的 */
   position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
+  inset: 0;
+  width: 100%;
   height: 100%;
-  aspect-ratio: 1;
   object-fit: cover;
-  /* 右边缘羽化到透明，和背后的模糊图连成一片，去掉方框和投影 */
-  mask-image: linear-gradient(to right, #000 58%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to right, #000 58%, transparent 100%);
+  object-position: center;
 }
 .banner-info {
   /* 右侧留出圆点指示器的位置，避免文字压到它 */
