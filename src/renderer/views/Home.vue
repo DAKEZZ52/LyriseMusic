@@ -684,7 +684,7 @@ const handleRejectAgreement = () => {
       </section>
 
       <!-- 排行榜：三个榜各带前三首，不用点进去就能看见内容 -->
-      <section v-if="rankPreviews.length > 0" class="home-section">
+      <section v-if="rankPreviews && rankPreviews.length > 0" class="home-section">
         <div class="section-header">
           <div class="section-title">排行榜</div>
           <button type="button" class="section-more" @click="openRankingPage">更多</button>
@@ -696,7 +696,7 @@ const handleRejectAgreement = () => {
               <span class="rank-name">{{ preview.rank.name }}</span>
             </button>
             <ul class="rank-songs">
-              <li v-for="song in preview.songs" :key="song.id">
+              <li v-for="song in preview.songs || []" :key="song.id">
                 <button type="button" class="rank-song" @click="playRankSong(song, preview.songs)">
                   <img v-if="song.coverUrl" class="rank-song-cover" :src="song.coverUrl" alt="" />
                   <span class="rank-song-main">
