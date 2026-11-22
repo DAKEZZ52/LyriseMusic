@@ -854,7 +854,8 @@ const handleRejectAgreement = () => {
 .home-banner {
   position: relative;
   width: 100%;
-  aspect-ratio: 2.6 / 1;
+  /* 接近方形：封面按原比例铺满，不再被裁成扁长方形 */
+  aspect-ratio: 1.15 / 1;
   border-radius: 20px;
   overflow: hidden;
   margin-bottom: 18px;
@@ -863,7 +864,7 @@ const handleRejectAgreement = () => {
 }
 @media (max-width: 900px) {
   .home-banner {
-    aspect-ratio: 2 / 1;
+    aspect-ratio: 1 / 1;
   }
 }
 .banner-placeholder {
@@ -1403,8 +1404,8 @@ const handleRejectAgreement = () => {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 7px;
-  width: 96px;
+  gap: 8px;
+  width: 160px;
   padding: 0;
   border: 0;
   border-radius: 12px;
@@ -1429,7 +1430,7 @@ const handleRejectAgreement = () => {
 .new-item-wave {
   position: absolute;
   right: 7px;
-  bottom: 6px;
+  bottom: 7px;
   display: flex;
   align-items: flex-end;
   gap: 2px;
@@ -1472,9 +1473,9 @@ const handleRejectAgreement = () => {
   }
 }
 .new-item-cover {
-  width: 96px;
-  height: 96px;
-  border-radius: 12px;
+  width: 160px;
+  height: 160px;
+  border-radius: 14px;
   object-fit: cover;
   flex-shrink: 0;
   background: var(--content-selected-bg);
