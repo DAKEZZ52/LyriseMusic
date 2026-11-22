@@ -682,45 +682,6 @@ const handleRejectAgreement = () => {
         </div>
       </section>
 
-      <section class="home-section">
-        <div class="section-header">
-          <div class="section-title">推荐歌单</div>
-          <div class="playlist-source-tabs">
-            <Button
-              v-for="category in RECOMMEND_PLAYLIST_CATEGORIES"
-              :key="category.id"
-              variant="unstyled"
-              size="none"
-              class="playlist-source-btn"
-              :class="{ active: activeRecommendCategoryId === category.id }"
-              @click="switchRecommendCategory(category.id)"
-            >
-              {{ category.label }}
-            </Button>
-          </div>
-        </div>
-        <div v-if="!recommendState.loading && recommendState.error" class="section-placeholder">
-          {{ recommendState.error }}
-        </div>
-        <VirtualGrid
-          v-else
-          class="playlist-grid"
-          :items="visiblePlaylistCards"
-          :loading="recommendState.loading"
-          :itemMinWidth="180"
-          :itemAspectRatio="1"
-          :itemChromeHeight="66"
-          :gap="20"
-          :overscan="HOME_GRID_OVERSCAN"
-          :virtualThreshold="HOME_GRID_VIRTUAL_THRESHOLD"
-          keyField="id"
-        >
-          <template #default="{ item }">
-            <PlaylistCard v-bind="item" :coverSize="HOME_PLAYLIST_COVER_SIZE" layout="grid" />
-          </template>
-        </VirtualGrid>
-      </section>
-
       <section class="home-section style-recommend-section">
         <div class="section-header">
           <div>
@@ -820,7 +781,80 @@ const handleRejectAgreement = () => {
         </div>
       </section>
 
-      <!-- 最新音乐：左边新歌列表，右边新碟上架 -->
+      <section v-if="rankPreviews && rankPreviews.length > 0" class="home-section">
+        <div class="section-header">
+          <div class="section-title">排行榜</div>
+          <button type="button" class="section-more" @click="openRankingPage">更多</button>
+        </div>
+        <div class="rank-grid">
+          <div v-for="preview in rankPreviews" :key="preview.rank.id" class="rank-col">
+            <button type="button" class="rank-head" @click="openRank(preview.rank)">
+              <img v-if="preview.rank.pic" class="rank-pic" :src="preview.rank.pic" alt="" />
+              <span class="rank-head-main">
+                <span class="rank-name">{{ preview.rank.name }}</span>
+                <span class="rank-update">
+                  {{ preview.rank.updateFrequency || '实时更新' }}
+                </span>
+              </span>
+              <span class="rank-arrow">›</span>
+            </button>
+            <ol class="rank-songs">
+              <li v-for="(song, index) in preview.songs || []" :key="song.id">
+                <button type="button" class="rank-song" @click="playRankSong(song, preview.songs)">
+                  <span class="rank-index" :class="{ 'rank-index-top': index === 0 }">
+                    {{ index + 1 }}
+                  </span>
+                  <img v-if="song.coverUrl" class="rank-song-cover" :src="song.coverUrl" alt="" />
+                  <span class="rank-song-main">
+                    <span class="rank-song-name">{{ song.title }}</span>
+                    <span class="rank-song-artist">{{ song.artist || '未知歌手' }}</span>
+                  </span>
+                </button>
+              </li>
+            </ol>
+          </div>
+        </div>
+      </section>
+
+      <section class="home-section">
+        <div class="section-header">
+          <div class="section-title">推荐歌单</div>
+          <div class="playlist-source-tabs">
+            <Button
+              v-for="category in RECOMMEND_PLAYLIST_CATEGORIES"
+              :key="category.id"
+              variant="unstyled"
+              size="none"
+              class="playlist-source-btn"
+              :class="{ active: activeRecommendCategoryId === category.id }"
+              @click="switchRecommendCategory(category.id)"
+            >
+              {{ category.label }}
+            </Button>
+          </div>
+        </div>
+        <div v-if="!recommendState.loading && recommendState.error" class="section-placeholder">
+          {{ recommendState.error }}
+        </div>
+        <VirtualGrid
+          v-else
+          class="playlist-grid"
+          :items="visiblePlaylistCards"
+          :loading="recommendState.loading"
+          :itemMinWidth="180"
+          :itemAspectRatio="1"
+          :itemChromeHeight="66"
+          :gap="20"
+          :overscan="HOME_GRID_OVERSCAN"
+          :virtualThreshold="HOME_GRID_VIRTUAL_THRESHOLD"
+          keyField="id"
+        >
+          <template #default="{ item }">
+            <PlaylistCard v-bind="item" :coverSize="HOME_PLAYLIST_COVER_SIZE" layout="grid" />
+          </template>
+        </VirtualGrid>
+      </section>
+
       <section v-if="newSongs.length > 0 || newAlbums.length > 0" class="home-section">
         <div class="section-header">
           <div class="section-title">最新音乐</div>
@@ -856,42 +890,6 @@ const handleRejectAgreement = () => {
                 :artist="album.singerName"
               />
             </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 排行榜：三个榜各带前三首，不用点进去就能看见内容 -->
-      <section v-if="rankPreviews && rankPreviews.length > 0" class="home-section">
-        <div class="section-header">
-          <div class="section-title">排行榜</div>
-          <button type="button" class="section-more" @click="openRankingPage">更多</button>
-        </div>
-        <div class="rank-grid">
-          <div v-for="preview in rankPreviews" :key="preview.rank.id" class="rank-col">
-            <button type="button" class="rank-head" @click="openRank(preview.rank)">
-              <img v-if="preview.rank.pic" class="rank-pic" :src="preview.rank.pic" alt="" />
-              <span class="rank-head-main">
-                <span class="rank-name">{{ preview.rank.name }}</span>
-                <span class="rank-update">
-                  {{ preview.rank.updateFrequency || '实时更新' }}
-                </span>
-              </span>
-              <span class="rank-arrow">›</span>
-            </button>
-            <ol class="rank-songs">
-              <li v-for="(song, index) in preview.songs || []" :key="song.id">
-                <button type="button" class="rank-song" @click="playRankSong(song, preview.songs)">
-                  <span class="rank-index" :class="{ 'rank-index-top': index === 0 }">
-                    {{ index + 1 }}
-                  </span>
-                  <img v-if="song.coverUrl" class="rank-song-cover" :src="song.coverUrl" alt="" />
-                  <span class="rank-song-main">
-                    <span class="rank-song-name">{{ song.title }}</span>
-                    <span class="rank-song-artist">{{ song.artist || '未知歌手' }}</span>
-                  </span>
-                </button>
-              </li>
-            </ol>
           </div>
         </div>
       </section>
