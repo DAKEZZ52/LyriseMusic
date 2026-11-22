@@ -287,7 +287,7 @@ const fetchNewSongs = async () => {
     const res = await getNewSongs();
     newSongs.value = extractList(res)
       .map((item) => mapTopSong(item))
-      .slice(0, 8);
+      .slice(0, 30);
   } catch {
     newSongs.value = [];
   }
@@ -592,12 +592,22 @@ const handleRejectAgreement = () => {
             <div class="section-title">最新音乐</div>
           </div>
           <ul class="new-list">
-            <li v-for="song in newSongs.slice(0, 5)" :key="song.id">
-              <button type="button" class="new-item" @click="playNewSong(song)">
+            <li v-for="song in newSongs" :key="song.id">
+              <button
+                type="button"
+                class="new-item"
+                :class="{ 'is-active': activeSongId === String(song.id) }"
+                @click="playNewSong(song)"
+              >
                 <img v-if="song.coverUrl" class="new-item-cover" :src="song.coverUrl" alt="" />
                 <span class="new-item-main">
                   <span class="new-item-name">{{ song.title }}</span>
                   <span class="new-item-artist">{{ song.artist || '未知歌手' }}</span>
+                </span>
+                <span v-if="activeSongId === String(song.id)" class="new-item-wave">
+                  <i />
+                  <i />
+                  <i />
                 </span>
               </button>
             </li>
@@ -1375,22 +1385,81 @@ const handleRejectAgreement = () => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   margin: 0;
-  padding: 0;
+  /* 右侧留白给滚动条，避免贴边 */
+  padding: 0 6px 0 0;
   list-style: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
 }
 .new-item {
   display: flex;
   align-items: center;
   gap: 11px;
   width: 100%;
-  padding: 7px 0;
+  padding: 7px 8px;
   border: 0;
+  border-radius: 10px;
   background: transparent;
   text-align: left;
   cursor: pointer;
   min-width: 0;
+  transition:
+    background-color 0.18s ease,
+    transform 0.18s ease;
+}
+.new-item:hover {
+  background: color-mix(in srgb, var(--content-selected-bg) 70%, transparent);
+}
+.new-item.is-active {
+  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+}
+.new-item.is-active .new-item-name {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* 选中时的三根跳动条 */
+.new-item-wave {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 14px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.new-item-wave i {
+  width: 2.5px;
+  border-radius: 2px;
+  background: var(--color-primary);
+  animation: new-wave 0.9s ease-in-out infinite;
+}
+.new-item-wave i:nth-child(1) {
+  height: 60%;
+  animation-delay: -0.2s;
+}
+.new-item-wave i:nth-child(2) {
+  height: 100%;
+  animation-delay: -0.5s;
+}
+.new-item-wave i:nth-child(3) {
+  height: 45%;
+}
+@keyframes new-wave {
+  0%,
+  100% {
+    transform: scaleY(0.45);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .new-item-wave i {
+    animation: none;
+    transform: scaleY(0.8);
+  }
 }
 .new-item-cover {
   width: 44px;
