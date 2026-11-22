@@ -637,18 +637,6 @@ const handleRejectAgreement = () => {
           <div>
             <div class="section-title">风格推荐</div>
           </div>
-          <div class="style-section-actions">
-            <Button
-              variant="unstyled"
-              size="none"
-              class="style-play-btn"
-              :disabled="styleSongs.length === 0"
-              @click="playStyleSongs()"
-            >
-              <Icon :icon="iconPlay" width="14" height="14" />
-              <span>播放全部</span>
-            </Button>
-          </div>
         </div>
 
         <div class="style-recommend-panel">
@@ -668,6 +656,19 @@ const handleRejectAgreement = () => {
                 @click="activeStyleGroupName = group.name"
               >
                 {{ group.name }}
+              </Button>
+            </div>
+            <!-- 播放全部挪到这一行最右，和分类切换同排 -->
+            <div class="style-section-actions">
+              <Button
+                variant="unstyled"
+                size="none"
+                class="style-play-btn"
+                :disabled="styleSongs.length === 0"
+                @click="playStyleSongs()"
+              >
+                <Icon :icon="iconPlay" width="14" height="14" />
+                <span>播放全部</span>
               </Button>
             </div>
           </div>
@@ -1507,8 +1508,12 @@ const handleRejectAgreement = () => {
 .style-category-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  /* 三块并排：标签 / 分类 / 播放全部，靠 margin-left:auto 把按钮顶到最右 */
   gap: 16px;
+}
+.style-section-actions {
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .style-panel-label {
