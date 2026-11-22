@@ -6,7 +6,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '@/stores/user';
 import { useSettingStore } from '@/stores/setting';
-import { getPlaylistByCategory, getTopIP, getRankTop } from '@/api/playlist';
+import { getPlaylistByCategory, getTopIP, getRankTop, getRankSongs } from '@/api/playlist';
 import {
   getEverydayStyleRecommend,
   getEverydayRecommend,
@@ -19,12 +19,13 @@ import AlbumCard from '@/components/music/AlbumCard.vue';
 import SongCard from '@/components/music/SongCard.vue';
 import VirtualGrid from '@/components/ui/VirtualGrid.vue';
 import { mapPlaylistMeta, mapRankMeta, mapTopSong, mapAlbumMeta } from '@/utils/mappers';
+import { mapRankSong } from '@/utils/mappers/song';
 import { extractList } from '@/utils/extractors';
 import type { PlaylistMeta } from '@/models/playlist';
 import type { RankMeta } from '@/models/rank';
 import type { AlbumMeta } from '@/models/album';
 import type { Song } from '@/models/song';
-import { iconCalendar, iconPlay, iconSlidersHorizontal, iconSparkles, iconTrophy } from '@/icons';
+import { iconPlay, iconSlidersHorizontal } from '@/icons';
 import Button from '@/components/ui/Button.vue';
 import UserAgreementDialog from '@/components/app/UserAgreementDialog.vue';
 import PageScrollContainer from '@/components/ui/PageScrollContainer.vue';
@@ -225,9 +226,6 @@ const loadStyleRecommend = async (options: { useSelectedTags?: boolean } = {}) =
   }
 };
 
-const openRecommend = () => {
-  router.push({ name: 'recommend-songs' });
-};
 const openPersonalFm = () => {
   router.push({ name: 'personal-fm' });
 };
@@ -262,15 +260,42 @@ const fetchGuessSongs = async () => {
 
 /** 榜单列表：首页卡片里只列前几个名字，点进去看完整榜。 */
 const ranks = ref<RankMeta[]>([]);
+
+/** 排行榜预览：每个榜带前三首，首页直接能看到榜单内容。 */
+interface RankPreview {
+  rank: RankMeta;
+  songs: Song[];
+}
+const rankPreviews = ref<RankPreview[]>([]);
+
 const fetchRanks = async () => {
   try {
     const res = await getRankTop();
-    ranks.value = extractList(res)
+    const list = extractList(res)
       .map((item) => mapRankMeta(item))
       .filter((item) => item.id !== 0)
-      .slice(0, 5);
+      .slice(0, 3);
+    ranks.value = list;
+
+    // 三个榜并发拉前三首，任何一个失败都只影响自己那一列
+    rankPreviews.value = await Promise.all(
+      list.map(async (rank) => {
+        try {
+          const payload = await getRankSongs(rank.id, 1, 3);
+          return {
+            rank,
+            songs: extractList(payload)
+              .map((item) => mapRankSong(item))
+              .slice(0, 3),
+          };
+        } catch {
+          return { rank, songs: [] };
+        }
+      }),
+    );
   } catch {
     ranks.value = [];
+    rankPreviews.value = [];
   }
 };
 
@@ -333,6 +358,26 @@ const playDailySong = (song: Song) => {
   void replaceQueueAndPlay(playlistStore, playerStore, dailySongs.value, index, song, {
     type: 'daily-recommend',
   });
+};
+
+/** 每日推荐大卡上的「播放全部」。 */
+const todayLabel = new Date().getDate().toString();
+const playAllDaily = () => {
+  const first = dailySongs.value[0];
+  if (!first) return;
+  void replaceQueueAndPlay(playlistStore, playerStore, dailySongs.value, 0, first, {
+    type: 'daily-recommend',
+  });
+};
+
+/** 点榜单里的一首歌：以该榜前三首为队列播放。 */
+const playRankSong = (song: Song, list: Song[]) => {
+  if (!list.length) return;
+  const index = Math.max(
+    0,
+    list.findIndex((item) => String(item.id) === String(song.id)),
+  );
+  void replaceQueueAndPlay(playlistStore, playerStore, list, index, song, { type: 'ranking' });
 };
 
 /**
@@ -585,77 +630,85 @@ const handleRejectAgreement = () => {
         </template>
       </div>
 
-      <!-- 三张入口卡：每张列出几条内容，点条目直接播 -->
-      <div class="entry-cards">
-        <!-- 每日推荐 -->
-        <section class="entry-card">
-          <header class="entry-head">
-            <span class="entry-icon entry-icon-orange"
-              ><Icon :icon="iconCalendar" width="13" height="13"
-            /></span>
-            <span class="entry-title">每日推荐</span>
-            <button type="button" class="entry-more" @click="openRecommend">更多</button>
-          </header>
-          <ul v-if="dailySongs.length > 0" class="entry-list">
-            <li v-for="song in dailySongs.slice(0, 5)" :key="song.id">
-              <button type="button" class="entry-row" @click="playDailySong(song)">
-                <img v-if="song.coverUrl" class="entry-cover" :src="song.coverUrl" alt="" />
-                <span class="entry-row-main">
-                  <span class="entry-row-title">{{ song.title }}</span>
-                  <span class="entry-row-sub">{{ song.artist || '未知歌手' }}</span>
-                </span>
-              </button>
-            </li>
-          </ul>
-          <div v-else class="entry-empty">暂无推荐</div>
-        </section>
+      <!-- 每日推荐：参考网易云，日期 + 说明 + 播放全部 + 封面墙 -->
+      <section v-if="dailySongs.length > 0" class="daily-hero">
+        <div class="daily-badge">
+          <span class="daily-day">{{ todayLabel }}</span>
+          <span class="daily-month">日</span>
+        </div>
+        <div class="daily-info">
+          <div class="daily-title">每日推荐</div>
+          <div class="daily-sub">根据你的口味，今天为你准备了 {{ dailySongs.length }} 首</div>
+          <button type="button" class="daily-play" @click="playAllDaily">
+            <Icon :icon="iconPlay" width="14" height="14" />
+            <span>播放全部</span>
+          </button>
+        </div>
+        <div class="daily-covers">
+          <button
+            v-for="song in dailySongs.slice(0, 5)"
+            :key="song.id"
+            type="button"
+            class="daily-cover"
+            @click="playDailySong(song)"
+          >
+            <img v-if="song.coverUrl" :src="song.coverUrl" alt="" />
+          </button>
+        </div>
+      </section>
 
-        <!-- 排行榜 -->
-        <section class="entry-card">
-          <header class="entry-head">
-            <span class="entry-icon entry-icon-blue"
-              ><Icon :icon="iconTrophy" width="13" height="13"
-            /></span>
-            <span class="entry-title">排行榜</span>
-            <button type="button" class="entry-more" @click="openRankingPage">更多</button>
-          </header>
-          <ul v-if="ranks.length > 0" class="entry-list">
-            <li v-for="rank in ranks" :key="rank.id">
-              <button type="button" class="entry-row" @click="openRank(rank)">
-                <img v-if="rank.pic" class="entry-cover" :src="rank.pic" alt="" />
-                <span class="entry-row-main">
-                  <span class="entry-row-title">{{ rank.name }}</span>
-                  <span class="entry-row-sub">{{ rank.updateFrequency || '实时更新' }}</span>
-                </span>
-              </button>
-            </li>
-          </ul>
-          <div v-else class="entry-empty">暂无榜单</div>
-        </section>
+      <!-- 猜你喜欢：横滑歌曲卡 -->
+      <section v-if="guessSongs.length > 0" class="home-section">
+        <div class="section-header">
+          <div class="section-title">猜你喜欢</div>
+          <button type="button" class="section-more" @click="openPersonalFm">更多</button>
+        </div>
+        <div class="guess-row">
+          <button
+            v-for="song in guessSongs"
+            :key="song.id"
+            type="button"
+            class="guess-card"
+            @click="playGuessSong(song)"
+          >
+            <div class="guess-cover">
+              <img v-if="song.coverUrl" :src="song.coverUrl" alt="" />
+              <span class="guess-play">
+                <Icon :icon="iconPlay" width="16" height="16" />
+              </span>
+            </div>
+            <div class="guess-title">{{ song.title }}</div>
+            <div class="guess-sub">{{ song.artist || '未知歌手' }}</div>
+          </button>
+        </div>
+      </section>
 
-        <!-- 猜你喜欢 -->
-        <section class="entry-card">
-          <header class="entry-head">
-            <span class="entry-icon entry-icon-purple"
-              ><Icon :icon="iconSparkles" width="13" height="13"
-            /></span>
-            <span class="entry-title">猜你喜欢</span>
-            <button type="button" class="entry-more" @click="openPersonalFm">更多</button>
-          </header>
-          <ul v-if="guessSongs.length > 0" class="entry-list">
-            <li v-for="song in guessSongs.slice(0, 5)" :key="song.id">
-              <button type="button" class="entry-row" @click="playGuessSong(song)">
-                <img v-if="song.coverUrl" class="entry-cover" :src="song.coverUrl" alt="" />
-                <span class="entry-row-main">
-                  <span class="entry-row-title">{{ song.title }}</span>
-                  <span class="entry-row-sub">{{ song.artist || '未知歌手' }}</span>
-                </span>
-              </button>
-            </li>
-          </ul>
-          <div v-else class="entry-empty">暂无推荐</div>
-        </section>
-      </div>
+      <!-- 排行榜：三个榜各带前三首，不用点进去就能看见内容 -->
+      <section v-if="rankPreviews.length > 0" class="home-section">
+        <div class="section-header">
+          <div class="section-title">排行榜</div>
+          <button type="button" class="section-more" @click="openRankingPage">更多</button>
+        </div>
+        <div class="rank-grid">
+          <div v-for="preview in rankPreviews" :key="preview.rank.id" class="rank-col">
+            <button type="button" class="rank-head" @click="openRank(preview.rank)">
+              <img v-if="preview.rank.pic" class="rank-pic" :src="preview.rank.pic" alt="" />
+              <span class="rank-name">{{ preview.rank.name }}</span>
+            </button>
+            <ul class="rank-songs">
+              <li v-for="song in preview.songs" :key="song.id">
+                <button type="button" class="rank-song" @click="playRankSong(song, preview.songs)">
+                  <img v-if="song.coverUrl" class="rank-song-cover" :src="song.coverUrl" alt="" />
+                  <span class="rank-song-main">
+                    <span class="rank-song-name">{{ song.title }}</span>
+                    <span class="rank-song-artist">{{ song.artist || '未知歌手' }}</span>
+                  </span>
+                </button>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
 
       <section class="home-section">
         <div class="section-header">
@@ -996,131 +1049,272 @@ const handleRejectAgreement = () => {
 }
 
 /* ── 快捷入口四宫格 ── */
-/* ── 三张入口卡 ── */
-.entry-cards {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-  margin-bottom: 30px;
-}
-@media (max-width: 900px) {
-  .entry-cards {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-.entry-card {
+/* ── 每日推荐大卡 ── */
+.daily-hero {
   display: flex;
-  flex-direction: column;
-  min-width: 0;
-  padding: 16px 18px 14px;
+  align-items: center;
+  gap: 22px;
+  padding: 20px 24px;
+  margin-bottom: 28px;
   border-radius: 18px;
   border: 1px solid var(--content-panel-border);
   background: var(--content-panel-bg);
-  transition: background-color 0.18s ease;
 }
-.entry-card:hover {
-  background: var(--content-selected-bg);
-}
-.entry-head {
+.daily-badge {
+  flex-shrink: 0;
+  width: 62px;
+  height: 68px;
+  border-radius: 14px;
   display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-.entry-icon {
-  width: 22px;
-  height: 22px;
-  border-radius: 7px;
-  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   color: #fff;
-  flex-shrink: 0;
-}
-.entry-icon-orange {
   background: linear-gradient(135deg, #ff8a3d, #f4511e);
 }
-.entry-icon-blue {
-  background: linear-gradient(135deg, #4facfe, #0071e3);
+.daily-day {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
 }
-.entry-icon-purple {
-  background: linear-gradient(135deg, #a855f7, #6d28d9);
+.daily-month {
+  margin-top: 3px;
+  font-size: 11px;
+  opacity: 0.9;
 }
-.entry-title {
+.daily-info {
   flex: 1;
   min-width: 0;
-  font-size: 13px;
-  font-weight: 600;
+}
+.daily-title {
+  font-size: 17px;
+  font-weight: 700;
   color: var(--text-main);
 }
-.entry-more {
+.daily-sub {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.daily-play {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 10px;
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-on-primary, #fff);
+  background: var(--color-primary);
+  cursor: pointer;
+}
+.daily-play:hover {
+  opacity: 0.9;
+}
+.daily-covers {
+  display: flex;
+  gap: 10px;
   flex-shrink: 0;
+}
+@media (max-width: 900px) {
+  .daily-covers {
+    display: none;
+  }
+}
+.daily-cover {
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--content-selected-bg);
+  flex-shrink: 0;
+}
+.daily-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.2s ease;
+}
+.daily-cover:hover img {
+  transform: scale(1.06);
+}
+
+/* ── 猜你喜欢：横滑一排 ── */
+.guess-row {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+}
+.guess-card {
+  flex: 0 0 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   padding: 0;
   border: 0;
   background: transparent;
-  font-size: 11px;
-  color: var(--text-secondary);
+  text-align: left;
   cursor: pointer;
 }
-.entry-more:hover {
+.guess-cover {
+  position: relative;
+  width: 150px;
+  height: 150px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--content-panel-bg);
+  border: 1px solid var(--content-panel-border);
+}
+.guess-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.25s ease;
+}
+.guess-card:hover .guess-cover img {
+  transform: scale(1.04);
+}
+.guess-play {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-on-primary, #fff);
+  background: color-mix(in srgb, var(--color-primary) 88%, transparent);
+  opacity: 0;
+  transform: translateY(4px);
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+.guess-card:hover .guess-play {
+  opacity: 1;
+  transform: translateY(0);
+}
+.guess-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.guess-sub {
+  font-size: 11px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* ── 排行榜：三个榜各带前三首 ── */
+.rank-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+@media (max-width: 1000px) {
+  .rank-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.rank-col {
+  min-width: 0;
+}
+.rank-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 0 0 10px;
+  border: 0;
+  border-bottom: 1px solid var(--content-panel-border);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.rank-pic {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--content-selected-bg);
+}
+.rank-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.rank-head:hover .rank-name {
   color: var(--color-primary);
 }
-.entry-list {
-  display: flex;
-  flex-direction: column;
+.rank-songs {
   margin: 0;
   padding: 0;
   list-style: none;
 }
-.entry-row {
+.rank-song {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 9px;
   width: 100%;
-  padding: 9px 0;
+  padding: 7px 0;
   border: 0;
   background: transparent;
   text-align: left;
   cursor: pointer;
   min-width: 0;
 }
-.entry-cover {
-  width: 46px;
-  height: 46px;
-  border-radius: 10px;
+.rank-song-cover {
+  width: 34px;
+  height: 34px;
+  border-radius: 7px;
   object-fit: cover;
   flex-shrink: 0;
   background: var(--content-selected-bg);
 }
-.entry-row-main {
+.rank-song-main {
   display: flex;
   flex-direction: column;
   gap: 1px;
   min-width: 0;
-  flex: 1;
 }
-.entry-row-title {
-  font-size: 13px;
+.rank-song-name {
+  font-size: 12px;
   color: var(--text-main);
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
   transition: color 0.15s ease;
 }
-.entry-row:hover .entry-row-title {
+.rank-song:hover .rank-song-name {
   color: var(--color-primary);
 }
-.entry-row-sub {
+.rank-song-artist {
   font-size: 11px;
   color: var(--text-secondary);
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-}
-.entry-empty {
-  padding: 14px 0;
-  font-size: 11px;
-  color: var(--text-secondary);
 }
 
 /* ── 最新音乐：新歌 + 新碟 ── */
