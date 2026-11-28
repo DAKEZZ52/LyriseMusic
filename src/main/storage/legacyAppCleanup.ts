@@ -113,3 +113,102 @@ export const cleanupLegacyApps = async (): Promise<void> => {
 
 /** 供测试/调试使用的注册表扫描（不卸载） */
 export const listLegacyInstalls = findLegacyInstalls;
+
+/** 用户选择「不再提示」后写入，避免每次启动都弹 */
+const ENV_WARN_MARKER = '.legacy-env-warned';
+
+export interface LegacyEnvironmentFinding {
+  /** 人类可读的残留描述，直接展示给用户 */
+  label: string;
+  /** 类型：安装记录 / 安装目录 / 配置目录 */
+  kind: 'registry' | 'install-dir' | 'data-dir';
+  /** 具体路径或名称 */
+  target: string;
+}
+
+/**
+ * 扫描旧版本残留：注册表卸载项 + 安装目录 + 配置目录。
+ *
+ * 光看注册表不够 —— 旧版本残留经常是「卸载了但目录还在」，
+ * 那种情况下用户打开的还是旧 exe，界面自然是旧的。
+ */
+export const detectLegacyEnvironment = async (): Promise<LegacyEnvironmentFinding[]> => {
+  const findings: LegacyEnvironmentFinding[] = [];
+
+  try {
+    const installs = await findLegacyInstalls();
+    for (const entry of installs) {
+      const name = entry.displayName || '未知名称';
+      findings.push({ label: `安装记录：${name}`, kind: 'registry', target: name });
+    }
+  } catch {
+    // 注册表查不到不影响目录扫描
+  }
+
+  const programRoot = join(process.env.LOCALAPPDATA ?? '', 'Programs');
+  const roamingRoot = process.env.APPDATA ?? '';
+
+  for (const name of LEGACY_DISPLAY_NAME_PREFIXES) {
+    const installDir = join(programRoot, name);
+    if (programRoot && existsSync(installDir)) {
+      findings.push({ label: `安装目录：${installDir}`, kind: 'install-dir', target: installDir });
+    }
+    const dataDir = join(roamingRoot, name);
+    if (roamingRoot && existsSync(dataDir)) {
+      findings.push({ label: `配置目录：${dataDir}`, kind: 'data-dir', target: dataDir });
+    }
+  }
+
+  return findings;
+};
+
+/**
+ * 发现旧版本残留时弹一次系统对话框。
+ *
+ * 用主进程的系统对话框而不是页内弹窗：这一步可能在首屏之外，
+ * 系统对话框能保证用户一定看见，且不依赖渲染层是否已经就绪。
+ */
+export const warnLegacyEnvironment = async (): Promise<void> => {
+  if (!app.isPackaged || process.platform !== 'win32') return;
+
+  let markerPath: string;
+  try {
+    markerPath = join(app.getPath('userData'), ENV_WARN_MARKER);
+  } catch {
+    return;
+  }
+  if (existsSync(markerPath)) return;
+
+  const findings = await detectLegacyEnvironment().catch(() => []);
+  // 只有配置目录残留不算：用户可能从旧版迁移过歌单，那目录本来就该留着。
+  // 真正要提醒的是「还装着旧版」——注册表有记录，或安装目录还在。
+  if (!findings.some((item) => item.kind !== 'data-dir')) return;
+
+  const { dialog } = await import('electron');
+  const detail = [
+    '旧版本的界面与数据和新版本不通用，同时装两个可能出现功能异常、界面缺项。',
+    '',
+    ...findings.map((item) => `· ${item.label}`),
+    '',
+    '建议到「设置 → 应用」里卸载旧版本，必要时手动删掉上面列出的目录，然后重启本应用。',
+  ].join('\n');
+
+  const { response } = await dialog.showMessageBox({
+    type: 'warning',
+    title: '发现旧版本残留',
+    message: '这台电脑上还装着旧版本',
+    detail,
+    buttons: ['知道了', '不再提示'],
+    defaultId: 0,
+    cancelId: 0,
+    noLink: true,
+  });
+
+  if (response === 1) {
+    try {
+      writeFileSync(markerPath, `${Date.now()}\n`, 'utf8');
+    } catch {
+      // 写不进去最多下次再提示一次
+    }
+  }
+};

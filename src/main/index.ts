@@ -67,6 +67,16 @@ if (app.isPackaged) {
   }, 15_000).unref?.();
 }
 
+// 静默卸载可能失败（权限、卸载程序缺失等），20 秒后再查一次并提示用户，
+// 否则用户会一直对着旧界面，以为是新版的问题。
+if (app.isPackaged) {
+  setTimeout(() => {
+    void import('./storage/legacyAppCleanup')
+      .then((module) => module.warnLegacyEnvironment())
+      .catch(() => {});
+  }, 20_000).unref?.();
+}
+
 // 远程功能开关：启动时拉一次，之后每 10 分钟刷新（离线时沿用上次状态，默认全开）。
 void import('./remoteFlags').then((module) => module.startRemoteFlags()).catch(() => {});
 
